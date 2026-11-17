@@ -805,9 +805,9 @@ def s8_human_side(r: Runner) -> Scenario:
         "eta_history": [{"id": "ETA007", "eta": "11:10", "confidence": "HIGH", "created": "09:30", "note": "Tyre repaired"}],
         "gate_check_in": None, "independent_confirmation": [],
     }, None, Expect({"CLARIFY"}, ask_whom={"FACILITY"}, verification={"UNVERIFIED"}), "Triage arrival claim (no check-in)", ["H"])
-    sc.step(now + 3, "FACILITY", "Gate: no truck WB23GT4112 (VEH012) at the gate.")
+    sc.step(now + 3, "FACILITY", "Gate: vehicle VEH012 has not checked in at the gate.")
     sc.ask(now + 3, AgentRole.TRIAGE, {
-        "message": {"source": "FACILITY", "text": "Gate: no truck WB23GT4112 (VEH012) at the gate."},
+        "message": {"source": "FACILITY", "text": "Gate: vehicle VEH012 has not checked in at the gate."},
         "claim": {"sender": "DRV012", "text": t},
         "independent_confirmation": ["gate log via facility"],
     }, None, Expect({"CLARIFY", "NO_ACTION"}, verification={"VERIFIED"}), "Triage facility reply", ["H"])
@@ -942,6 +942,7 @@ details{margin-top:4px}summary{cursor:pointer;color:var(--mut);font-size:12px}pr
 <h2>Coverage against the brief</h2><div class="mut">Each brief item mapped to the scenario(s) that exercise it. Click a chip to open the scenario.</div>
 <div class="grid3" id="cov"></div>
 <h2>Measures</h2><div class="card"><table id="meas"></table></div>
+<div id="rep"></div>
 <h2>Scenario simulation</h2><div class="tabs" id="tabs"></div><div id="scn"></div>
 </div>
 <script>
@@ -967,6 +968,14 @@ const mrows = [['Turns to outcome (avg)', M.avg_turns_to_outcome], ['Sim minutes
  ['Priority-policy violations', M.priority_violations], ['Clarification turns', M.clarification_turns], ['Ungrounded agent evidence', M.ungrounded_answers],
  ['Mean agent latency', M.mean_agent_latency_s + ' s']];
 mrows.forEach(([k, v]) => $('#meas').append(h('tr', {}, h('th', {}, k), h('td', {}, String(v)))));
+if (R.repeats) {
+  const P = R.repeats, t = h('table', {}, h('tr', {}, ...['Agent call', 'Runs', 'Correct', 'Consistency', 'Most common answer (action|ask|selected|verification)'].map(x => h('th', {}, x))));
+  P.per_call.forEach(r => t.append(h('tr', {}, h('td', {}, r.call), h('td', {}, r.runs), h('td', {style: r.correct_rate < 1 ? 'color:var(--warn)' : ''}, pct(r.correct_rate)),
+    h('td', {style: r.consistency < 1 ? 'color:var(--warn)' : ''}, pct(r.consistency)), h('td', {class: 'mut'}, r.modal))));
+  $('#rep').append(h('h2', {}, `Consistency across ${P.runs} live runs`), h('div', {class: 'mut'},
+    `Accuracy mean ${pct(P.accuracy.mean)} (min ${pct(P.accuracy.min)}, max ${pct(P.accuracy.max)}) · workflow confidence mean ${P.workflow_confidence.mean} (min ${P.workflow_confidence.min}) · answer consistency ${pct(P.mean_consistency)}. The step-through below shows run 1.`),
+    h('div', {class: 'card'}, t));
+}
 R.scenarios.forEach(s => $('#tabs').append(h('div', {class: 'tab', id: 'tab-' + s.id, onclick: () => show(s.id)}, `${s.id} · ${s.title}`)));
 const docks = [...new Set(R.slots.map(s => s.dock))].sort();
 const toMin = t => +t.slice(0, 2) * 60 + +t.slice(3);
@@ -1033,10 +1042,44 @@ show(R.scenarios[0].id);
 """
 
 
+def merge_repeats(reports: list[dict[str, Any]]) -> dict[str, Any]:
+    """First run is shown step by step; every run contributes to per-call consistency."""
+    base = reports[0]
+    if len(reports) == 1:
+        return base
+    per_call: dict[str, list[dict[str, Any]]] = {}
+    for rep in reports:
+        for s in rep["scenarios"]:
+            n = 0
+            for st in s["steps"]:
+                if st["agent"]:
+                    n += 1
+                    per_call.setdefault(f"{s['id']}#{n} {st['text'].split(' → ')[0]}", []).append(st["agent"])
+    rows = []
+    for key, calls in per_call.items():
+        sigs = ["|".join(str(c["guarded"].get(f)) for f in ("action", "ask_whom", "selected_id", "verification"))
+                for c in calls]
+        modal = max(set(sigs), key=sigs.count)
+        rows.append({"call": key, "runs": len(calls), "correct_rate": round(sum(c["correct"] for c in calls) / len(calls), 2),
+                     "consistency": round(sigs.count(modal) / len(sigs), 2), "modal": modal})
+    accs = [r["measures"]["agent_decision_accuracy"] for r in reports]
+    confs = [r["measures"]["workflow_confidence"] for r in reports]
+    base["repeats"] = {
+        "runs": len(reports),
+        "accuracy": {"mean": round(sum(accs) / len(accs), 3), "min": min(accs), "max": max(accs)},
+        "workflow_confidence": {"mean": round(sum(confs) / len(confs), 1), "min": min(confs), "max": max(confs)},
+        "mean_consistency": round(sum(r["consistency"] for r in rows) / len(rows), 3),
+        "per_call": rows,
+        "per_run": [r["measures"] for r in reports],
+    }
+    return base
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--offline", action="store_true", help="use the deterministic stand-in agent")
     parser.add_argument("--render", action="store_true", help="re-render HTML from the saved JSON")
+    parser.add_argument("--repeats", type=int, default=1, help="run the live scenarios N times for consistency")
     args = parser.parse_args()
     if args.render:
         report = json.loads(JSON_OUT.read_text(encoding="utf-8"))
@@ -1046,12 +1089,20 @@ def main() -> int:
             print("NVIDIA_API_KEY missing: add it to .env or use --offline", file=sys.stderr)
             return 2
         model = "offline-stand-in" if args.offline else os.environ.get("NVIDIA_MODEL_ID", "nvidia/nemotron-3-ultra-550b-a55b")
-        report = run(offline_agent if args.offline else None, "offline" if args.offline else "live", model)
+        reports = []
+        for i in range(max(args.repeats, 1)):
+            print(f"--- run {i + 1}/{args.repeats}", flush=True)
+            reports.append(run(offline_agent if args.offline else None, "offline" if args.offline else "live", model))
+        report = merge_repeats(reports)
         JSON_OUT.write_text(json.dumps(report, indent=1, ensure_ascii=False), encoding="utf-8")
     HTML_OUT.write_text(render(report), encoding="utf-8")
     m = report["measures"]
     print(f"Workflow confidence {m['workflow_confidence']}/100 · agent accuracy {m['agent_decision_accuracy']:.0%} · "
           f"conflicts {m['conflicting_allocations']} · stale caught {m['options_infeasible_at_recheck']}")
+    if "repeats" in report:
+        rp = report["repeats"]
+        print(f"Across {rp['runs']} runs: accuracy mean {rp['accuracy']['mean']:.0%} (min {rp['accuracy']['min']:.0%}), "
+              f"confidence mean {rp['workflow_confidence']['mean']}, consistency {rp['mean_consistency']:.0%}")
     missing = [f"{g}:{k}" for g, items in report["coverage"].items() for k, v in items.items() if not v["scenarios"]]
     print("Coverage gaps: " + (", ".join(missing) if missing else "none"))
     print(f"Wrote {HTML_OUT.name} and {JSON_OUT.name}")
