@@ -1,0 +1,2498 @@
+{
+  "model": "nvidia/nemotron-3-ultra-550b-a55b",
+  "seed": 7,
+  "start": "09:30",
+  "end": "21:00",
+  "wall_seconds": 900.0020162910077,
+  "stop_reason": "wall-clock limit (15 min)",
+  "summary": {
+    "score": 80.71428571428572,
+    "decision_accuracy": 0.7142857142857143,
+    "decisions": 35,
+    "safety": {
+      "No slot double-booked": true,
+      "No shipment with two current bookings": true,
+      "Foreign keys intact": true,
+      "No false dock outage applied": true,
+      "No infeasible booking": true
+    },
+    "safety_rate": 1.0,
+    "on_plan_rate": 0.75,
+    "arrivals": 12,
+    "weights": {
+      "decisions": 50,
+      "safety": 30,
+      "outcomes": 20
+    },
+    "agent_calls": 35,
+    "agent_errors": 1,
+    "role_play_calls": 25,
+    "mean_agent_latency_s": 21.55559517368716,
+    "queue_max_pending": 2,
+    "queue_mean_wait_min": 7.142857142857143,
+    "metrics": {
+      "guard_interventions": 1,
+      "answers_with_ungrounded_evidence": 2,
+      "bookings_pending_confirmation": 6,
+      "claims_fit_current_slot": 5,
+      "driver_questions": 6,
+      "duplicates_suppressed": 7,
+      "persona_fallbacks": 2,
+      "review_queued": 7,
+      "outage_impacted_appointments": 3,
+      "facility_verifications_requested": 3,
+      "facility_requests_not_needed": 5,
+      "status_answers": 4,
+      "coordinator_reviews_completed": 7,
+      "false_arrival_claims_detected": 1,
+      "manual_replans": 4,
+      "false_outage_claims_rejected": 1,
+      "human_replans": 1
+    }
+  },
+  "personas": {
+    "DRV001": "FALSE_ARRIVAL",
+    "DRV004": "HONEST",
+    "DRV006": "VAGUE",
+    "DRV007": "REPEATER",
+    "DRV009": "FALSE_ARRIVAL",
+    "DRV010": "REPEATER",
+    "DRV011": "OPTIMISTIC",
+    "DRV012": "HONEST",
+    "DRV013": "VAGUE",
+    "DRV014": "OPTIMISTIC",
+    "DRV015": "HONEST"
+  },
+  "judgments": [
+    {
+      "time": "09:40",
+      "role": "order_vehicle_assessment",
+      "kind": "NEW_ORDER_ASSESSMENT",
+      "correct": true,
+      "expected": "select one of ['D1', 'D2', 'D3', 'D4']"
+    },
+    {
+      "time": "09:40",
+      "role": "dispatch",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-006', 'SLOT-JAI-007', 'SLOT-JAI-008']..."
+    },
+    {
+      "time": "09:40",
+      "role": "triage",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 10:10 for SHP1007"
+    },
+    {
+      "time": "09:40",
+      "role": "triage",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 11:10 for SHP1010"
+    },
+    {
+      "time": "09:40",
+      "role": "triage",
+      "kind": "VAGUE_ETA",
+      "correct": true,
+      "expected": "CLARIFY with DRIVER"
+    },
+    {
+      "time": "09:50",
+      "role": "order_vehicle_assessment",
+      "kind": "NEW_ORDER_ASSESSMENT",
+      "correct": true,
+      "expected": "select one of ['D6']"
+    },
+    {
+      "time": "09:50",
+      "role": "dispatch",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-074', 'SLOT-JAI-075', 'SLOT-JAI-076']..."
+    },
+    {
+      "time": "09:50",
+      "role": "triage",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": false,
+      "expected": "PROPOSE/UNVERIFIED with ETA 10:30 for SHP1013"
+    },
+    {
+      "time": "10:00",
+      "role": "triage",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": false,
+      "expected": "PROPOSE/UNVERIFIED with ETA 10:30 for SHP1013"
+    },
+    {
+      "time": "10:10",
+      "role": "triage",
+      "kind": "FACILITY_OUTAGE_REPORT",
+      "correct": true,
+      "expected": "VERIFIED DOCK_OUTAGE for D1"
+    },
+    {
+      "time": "10:10",
+      "role": "dispatch",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "NO_FEASIBLE_OPTION"
+    },
+    {
+      "time": "10:10",
+      "role": "dispatch",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-020', 'SLOT-JAI-034', 'SLOT-JAI-048']..."
+    },
+    {
+      "time": "10:20",
+      "role": "triage",
+      "kind": "FALSE_ARRIVAL",
+      "correct": true,
+      "expected": "UNVERIFIED; ask FACILITY (or COORDINATOR) to check"
+    },
+    {
+      "time": "10:20",
+      "role": "triage",
+      "kind": "STATUS_QUESTION",
+      "correct": false,
+      "expected": "answer the status question without escalation"
+    },
+    {
+      "time": "10:20",
+      "role": "triage",
+      "kind": "STATUS_QUESTION",
+      "correct": false,
+      "expected": "answer the status question without escalation"
+    },
+    {
+      "time": "10:30",
+      "role": "triage",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 11:20 for SHP1011"
+    },
+    {
+      "time": "10:30",
+      "role": "triage",
+      "kind": "FACILITY_REPLY",
+      "correct": true,
+      "expected": "confirms_claim=False"
+    },
+    {
+      "time": "10:40",
+      "role": "triage",
+      "kind": "FALSE_OUTAGE_CLAIM",
+      "correct": false,
+      "expected": "UNVERIFIED; ask FACILITY (or COORDINATOR) to check"
+    },
+    {
+      "time": "10:40",
+      "role": "triage",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 11:05 for SHP1009"
+    },
+    {
+      "time": "10:50",
+      "role": "triage",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 11:25 for SHP1014"
+    },
+    {
+      "time": "10:50",
+      "role": "triage",
+      "kind": "FACILITY_REPLY",
+      "correct": true,
+      "expected": "confirms_claim=False"
+    },
+    {
+      "time": "11:00",
+      "role": "triage",
+      "kind": "CLEAR_ETA",
+      "correct": false,
+      "expected": "PROPOSE/UNVERIFIED with ETA 12:20 for SHP1016"
+    },
+    {
+      "time": "11:10",
+      "role": "triage",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": false,
+      "expected": "PROPOSE/UNVERIFIED with ETA 12:20 for SHP1016"
+    },
+    {
+      "time": "11:40",
+      "role": "triage",
+      "kind": "AMBIGUOUS",
+      "correct": true,
+      "expected": "CLARIFY with DRIVER"
+    },
+    {
+      "time": "11:40",
+      "role": "triage",
+      "kind": "STATUS_QUESTION",
+      "correct": false,
+      "expected": "answer the status question without escalation"
+    },
+    {
+      "time": "11:50",
+      "role": "triage",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 12:40 for SHP1006"
+    },
+    {
+      "time": "11:50",
+      "role": "dispatch",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-034', 'SLOT-JAI-048', 'SLOT-JAI-007']..."
+    },
+    {
+      "time": "12:10",
+      "role": "dispatch",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-075', 'SLOT-JAI-076', 'SLOT-JAI-077']..."
+    },
+    {
+      "time": "12:20",
+      "role": "triage",
+      "kind": "STATUS_QUESTION",
+      "correct": false,
+      "expected": "answer the status question without escalation"
+    },
+    {
+      "time": "12:30",
+      "role": "dispatch",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "NO_FEASIBLE_OPTION"
+    },
+    {
+      "time": "12:40",
+      "role": "triage",
+      "kind": "FALSE_ARRIVAL",
+      "correct": true,
+      "expected": "UNVERIFIED; ask FACILITY (or COORDINATOR) to check"
+    },
+    {
+      "time": "12:50",
+      "role": "triage",
+      "kind": "FACILITY_REPLY",
+      "correct": false,
+      "expected": "confirms_claim=False"
+    },
+    {
+      "time": "18:00",
+      "role": "triage",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 19:40 for SHP1015"
+    },
+    {
+      "time": "18:00",
+      "role": "dispatch",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "NO_FEASIBLE_OPTION"
+    },
+    {
+      "time": "19:40",
+      "role": "dispatch",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "NO_FEASIBLE_OPTION"
+    }
+  ],
+  "arrivals": [
+    {
+      "shipment_id": "SHP1007",
+      "persona": "REPEATER",
+      "arrived": "10:10",
+      "last_claim": "10:10",
+      "slot": "D1 10:00",
+      "outcome": "ON_PLAN"
+    },
+    {
+      "shipment_id": "SHP1013",
+      "persona": "VAGUE",
+      "arrived": "10:30",
+      "last_claim": null,
+      "slot": "D2 11:00",
+      "outcome": "ON_PLAN"
+    },
+    {
+      "shipment_id": "SHP1010",
+      "persona": "REPEATER",
+      "arrived": "11:10",
+      "last_claim": "11:10",
+      "slot": "D5 11:00",
+      "outcome": "ON_PLAN"
+    },
+    {
+      "shipment_id": "SHP1012",
+      "persona": "HONEST",
+      "arrived": "11:10",
+      "last_claim": null,
+      "slot": "D1 13:00",
+      "outcome": "EARLY_WAIT"
+    },
+    {
+      "shipment_id": "SHP1009",
+      "persona": "FALSE_ARRIVAL",
+      "arrived": "11:25",
+      "last_claim": "11:05",
+      "slot": "D4 11:00",
+      "outcome": "ON_PLAN"
+    },
+    {
+      "shipment_id": "SHP1011",
+      "persona": "OPTIMISTIC",
+      "arrived": "12:10",
+      "last_claim": "11:20",
+      "slot": "D6 11:00",
+      "outcome": "MISSED_SLOT"
+    },
+    {
+      "shipment_id": "SHP1016",
+      "persona": "REPEATER",
+      "arrived": "12:20",
+      "last_claim": null,
+      "slot": "D6 12:30",
+      "outcome": "ON_PLAN"
+    },
+    {
+      "shipment_id": "SHP1014",
+      "persona": "OPTIMISTIC",
+      "arrived": "12:25",
+      "last_claim": "11:25",
+      "slot": "D1 11:00",
+      "outcome": "MISSED_SLOT"
+    },
+    {
+      "shipment_id": "SHP1006",
+      "persona": "VAGUE",
+      "arrived": "12:40",
+      "last_claim": "12:40",
+      "slot": "D3 13:00",
+      "outcome": "ON_PLAN"
+    },
+    {
+      "shipment_id": "SHP1017",
+      "persona": "FALSE_ARRIVAL",
+      "arrived": "13:45",
+      "last_claim": "13:45",
+      "slot": "D1 14:00",
+      "outcome": "ON_PLAN"
+    },
+    {
+      "shipment_id": "SHP1020",
+      "persona": "HONEST",
+      "arrived": "18:00",
+      "last_claim": null,
+      "slot": "D2 18:00",
+      "outcome": "ON_PLAN"
+    },
+    {
+      "shipment_id": "SHP1015",
+      "persona": "HONEST",
+      "arrived": "19:40",
+      "last_claim": "19:40",
+      "slot": "D5 17:00",
+      "outcome": "MISSED_SLOT"
+    }
+  ],
+  "bookings": [
+    {
+      "time": "09:40",
+      "shipment_id": "SHP1012",
+      "slot_id": "SLOT-JAI-006",
+      "dock": "D1",
+      "start": "13:00",
+      "end": "14:00",
+      "reason": "new order",
+      "persona": "HONEST",
+      "true_arrival": "11:10"
+    },
+    {
+      "time": "09:50",
+      "shipment_id": "SHP1016",
+      "slot_id": "SLOT-JAI-074",
+      "dock": "D6",
+      "start": "12:30",
+      "end": "14:00",
+      "reason": "new order",
+      "persona": "REPEATER",
+      "true_arrival": "12:20"
+    },
+    {
+      "time": "10:10",
+      "shipment_id": "SHP1017",
+      "slot_id": "SLOT-JAI-020",
+      "dock": "D2",
+      "start": "13:00",
+      "end": "14:00",
+      "reason": "dock D1 outage",
+      "persona": "FALSE_ARRIVAL",
+      "true_arrival": "13:45"
+    },
+    {
+      "time": "11:50",
+      "shipment_id": "SHP1006",
+      "slot_id": "SLOT-JAI-034",
+      "dock": "D3",
+      "start": "13:00",
+      "end": "14:00",
+      "reason": "driver-declared ETA 12:40, unverified",
+      "persona": "VAGUE",
+      "true_arrival": "12:40"
+    },
+    {
+      "time": "12:10",
+      "shipment_id": "SHP1011",
+      "slot_id": "SLOT-JAI-075",
+      "dock": "D6",
+      "start": "14:00",
+      "end": "15:30",
+      "reason": "truck at gate after its slot (verified gate check-in)",
+      "persona": "OPTIMISTIC",
+      "true_arrival": "12:10"
+    },
+    {
+      "time": "13:20",
+      "shipment_id": "SHP1017",
+      "slot_id": "SLOT-JAI-007",
+      "dock": "D1",
+      "start": "14:00",
+      "end": "15:00",
+      "reason": "coordinator phone call; ETA confirmed by phone",
+      "persona": "FALSE_ARRIVAL",
+      "true_arrival": "13:45"
+    }
+  ],
+  "transcript": [
+    {
+      "time": "09:40",
+      "actor": "SYSTEM",
+      "text": "New order ORD-260804-012 (SHP1012) needs a dock"
+    },
+    {
+      "time": "09:40",
+      "actor": "ORDER_VEHICLE_ASSESSMENT",
+      "text": "PROPOSE / VERIFIED / ask NONE / selected D1",
+      "kind": "NEW_ORDER_ASSESSMENT",
+      "correct": true,
+      "expected": "select one of ['D1', 'D2', 'D3', 'D4']",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": "D1",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "OTHER",
+          "shipment_id": "SHP1012",
+          "claimed_eta": "11:10",
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "shipment_id:SHP1012",
+          "order_reference:ORD-260804-012",
+          "eta:11:10",
+          "load_weight_kg:8000",
+          "required_dock_type:STANDARD",
+          "temperature_control_required:false",
+          "feasible_ids:D1,D2,D3,D4"
+        ],
+        "question": null,
+        "reason": "Feasible docks D1-D4 meet all constraints (STANDARD type, 8000kg load within 9000kg vehicle capacity and dock max weight, no refrigeration needed, all available). Selecting D1 as first feasible option."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "09:40",
+      "actor": "DISPATCH",
+      "text": "PROPOSE / VERIFIED / ask NONE / selected SLOT-JAI-006",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-006', 'SLOT-JAI-007', 'SLOT-JAI-008']...",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": "SLOT-JAI-006",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "OTHER",
+          "shipment_id": "SHP1012",
+          "claimed_eta": null,
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "feasible_ids: SLOT-JAI-006, SLOT-JAI-007, SLOT-JAI-008, SLOT-JAI-009, SLOT-JAI-010, SLOT-JAI-011",
+          "planning_eta: 11:10",
+          "slot SLOT-JAI-006 start: 13:00"
+        ],
+        "question": null,
+        "reason": "Earliest feasible slot after planning ETA 11:10"
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "09:40",
+      "actor": "BOT -> DRV012",
+      "text": "Proposed dock D1 13:00-14:00 for ORD-260804-012, pending facility confirmation."
+    },
+    {
+      "time": "09:40",
+      "actor": "DRIVER DRV007 (REPEATER)",
+      "text": "Late. ORD-260804-007. ETA 10:10.",
+      "kind": "CLEAR_ETA"
+    },
+    {
+      "time": "09:40",
+      "actor": "TRIAGE",
+      "text": "PROPOSE / UNVERIFIED / ask NONE",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 10:10 for SHP1007",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1007",
+          "claimed_eta": "10:10",
+          "dock_code": "D1",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "ORD-260804-007",
+          "10:10",
+          "09:40",
+          "SHP1007",
+          "D1",
+          "10:00",
+          "11:00"
+        ],
+        "question": null,
+        "reason": "Driver reports ETA 10:10 for shipment SHP1007 (ORD-260804-007), 10 minutes after appointment start 10:00; no independent verification available. Propose ETA update for dispatch re-planning."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "09:40",
+      "actor": "SYSTEM",
+      "text": "SHP1007: claimed ETA 10:10 still fits the current slot"
+    },
+    {
+      "time": "09:40",
+      "actor": "DRIVER DRV010 (REPEATER)",
+      "text": "Late. ETA 11:10. ORD-260804-010",
+      "kind": "CLEAR_ETA"
+    },
+    {
+      "time": "09:40",
+      "actor": "TRIAGE",
+      "text": "PROPOSE / UNVERIFIED / ask NONE",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 11:10 for SHP1010",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1010",
+          "claimed_eta": "11:10",
+          "dock_code": "D5",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "ORD-260804-010",
+          "11:10",
+          "SHP1010",
+          "D5",
+          "11:00",
+          "12:00"
+        ],
+        "question": null,
+        "reason": "Driver reports late with ETA 11:10 for order ORD-260804-010 (shipment SHP1010), appointment at D5 11:00-12:00. No independent verification. Propose ETA update for dispatch re-planning."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "09:40",
+      "actor": "SYSTEM",
+      "text": "SHP1010: claimed ETA 11:10 still fits the current slot"
+    },
+    {
+      "time": "09:40",
+      "actor": "DRIVER DRV013 (VAGUE)",
+      "text": "ORD-260804-013 stuck in traffic, runnin late",
+      "kind": "VAGUE_ETA"
+    },
+    {
+      "time": "09:40",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask DRIVER",
+      "kind": "VAGUE_ETA",
+      "correct": true,
+      "expected": "CLARIFY with DRIVER",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "DRIVER",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1013",
+          "claimed_eta": null,
+          "dock_code": "D2",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "ORD-260804-013",
+          "SHP1013",
+          "FAC-JAI-01",
+          "D2",
+          "11:00",
+          "12:00",
+          "PENDING_CONFIRMATION",
+          "09:40"
+        ],
+        "question": "What is your revised ETA for arrival at FAC-JAI-01 dock D2?",
+        "reason": "Driver reports being stuck in traffic and running late for ORD-260804-013 (SHP1013) but does not provide a specific revised ETA. No independent verification available. Need driver's updated ETA for re-planning."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "09:40",
+      "actor": "BOT -> DRV013",
+      "text": "What is your revised ETA for arrival at FAC-JAI-01 dock D2?"
+    },
+    {
+      "time": "09:50",
+      "actor": "SYSTEM",
+      "text": "New order ORD-260804-016 (SHP1016) needs a dock"
+    },
+    {
+      "time": "09:50",
+      "actor": "ORDER_VEHICLE_ASSESSMENT",
+      "text": "PROPOSE / VERIFIED / ask NONE / selected D6",
+      "kind": "NEW_ORDER_ASSESSMENT",
+      "correct": true,
+      "expected": "select one of ['D6']",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": "D6",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "OTHER",
+          "shipment_id": "SHP1016",
+          "claimed_eta": "12:00",
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "SHP1016",
+          "ORD-260804-016",
+          "12:00",
+          "31000",
+          "HEAVY",
+          "D6",
+          "35000"
+        ],
+        "question": null,
+        "reason": "Only D6 meets HEAVY dock type requirement and 35000 kg capacity for 31000 kg load; deterministic_feasibility confirms D6 as sole feasible option."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "09:50",
+      "actor": "DISPATCH",
+      "text": "PROPOSE / NOT_APPLICABLE / ask NONE / selected SLOT-JAI-074",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-074', 'SLOT-JAI-075', 'SLOT-JAI-076']...",
+      "raw": {
+        "verification": "NOT_APPLICABLE",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": "SLOT-JAI-074",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "OTHER",
+          "shipment_id": "SHP1016",
+          "claimed_eta": null,
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "shipment.id=SHP1016",
+          "shipment.planning_eta=12:00",
+          "shipment.required_dock_type=HEAVY",
+          "shipment.load_weight_kg=31000",
+          "shipment.expected_unload_min=90",
+          "deterministic_feasibility.feasible_ids=[SLOT-JAI-074,SLOT-JAI-075,SLOT-JAI-076,SLOT-JAI-077,SLOT-JAI-078,SLOT-JAI-079]",
+          "SLOT-JAI-074.start=12:30",
+          "SLOT-JAI-074.end=14:00",
+          "SLOT-JAI-074.dock=D6",
+          "SLOT-JAI-074.dock_type=HEAVY"
+        ],
+        "question": null,
+        "reason": "Earliest feasible slot (SLOT-JAI-074) matches required dock type HEAVY, accommodates 90-min unload within 12:30-14:00 window, and is the first available after planning ETA 12:00."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "09:50",
+      "actor": "BOT -> DRV007",
+      "text": "Proposed dock D6 12:30-14:00 for ORD-260804-016, pending facility confirmation."
+    },
+    {
+      "time": "09:50",
+      "actor": "DRIVER DRV007 (REPEATER)",
+      "text": "Late. ORD-260804-007. ETA 10:10.",
+      "kind": "RESEND"
+    },
+    {
+      "time": "09:50",
+      "actor": "SYSTEM",
+      "text": "Duplicate message suppressed before any agent call or alert"
+    },
+    {
+      "time": "09:50",
+      "actor": "DRIVER DRV010 (REPEATER)",
+      "text": "Late. ETA 11:10. ORD-260804-010",
+      "kind": "RESEND"
+    },
+    {
+      "time": "09:50",
+      "actor": "SYSTEM",
+      "text": "Duplicate message suppressed before any agent call or alert"
+    },
+    {
+      "time": "09:50",
+      "actor": "DRIVER DRV013 (VAGUE)",
+      "text": "ORD-260804-013, reaching around 10:30",
+      "kind": "CLARIFICATION_REPLY"
+    },
+    {
+      "time": "09:50",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask DRIVER / selected ORD-260804-013",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": false,
+      "expected": "PROPOSE/UNVERIFIED with ETA 10:30 for SHP1013",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "DRIVER",
+        "selected_id": "ORD-260804-013",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "ORD-260804-013",
+          "claimed_eta": "10:30",
+          "dock_code": "D2",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "Driver message: 'ORD-260804-013, reaching around 10:30'",
+          "Previous driver message: 'ORD-260804-013 stuck in traffic, runnin late'",
+          "Appointment at FAC-JAI-01 dock D2: 11:00-12:00"
+        ],
+        "question": "You mentioned being stuck in traffic and running late, but now say you'll reach around 10:30 (30 minutes before your 11:00 appointment). Is 10:30 your estimated arrival at the facility gate or at dock D2?",
+        "reason": "Driver's latest ETA claim (10:30) contradicts earlier statement about running late for an 11:00 appointment; clarification needed before proposing an ETA update."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "09:50",
+      "actor": "BOT -> DRV013",
+      "text": "You mentioned being stuck in traffic and running late, but now say you'll reach around 10:30 (30 minutes before your 11:00 appointment). Is 10:30 your estimated arrival at the facility gate or at dock D2?"
+    },
+    {
+      "time": "10:00",
+      "actor": "DRIVER DRV007 (REPEATER)",
+      "text": "Late. ORD-260804-007. ETA 10:10.",
+      "kind": "RESEND"
+    },
+    {
+      "time": "10:00",
+      "actor": "SYSTEM",
+      "text": "Duplicate message suppressed before any agent call or alert"
+    },
+    {
+      "time": "10:00",
+      "actor": "DRIVER DRV010 (REPEATER)",
+      "text": "Late. ETA 11:10. ORD-260804-010",
+      "kind": "RESEND"
+    },
+    {
+      "time": "10:00",
+      "actor": "SYSTEM",
+      "text": "Duplicate message suppressed before any agent call or alert"
+    },
+    {
+      "time": "10:00",
+      "actor": "DRIVER DRV013 (VAGUE)",
+      "text": "order ORD-260804-013 eta 10:30",
+      "kind": "CLARIFICATION_REPLY"
+    },
+    {
+      "time": "10:00",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask DRIVER / selected ORD-260804-013",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": false,
+      "expected": "PROPOSE/UNVERIFIED with ETA 10:30 for SHP1013",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "DRIVER",
+        "selected_id": "ORD-260804-013",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1013",
+          "claimed_eta": "10:30",
+          "dock_code": "D2",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "ORD-260804-013",
+          "10:30",
+          "SHP1013",
+          "FAC-JAI-01",
+          "D2",
+          "11:00"
+        ],
+        "question": "Is your 10:30 ETA for arrival at the facility gate or at dock D2?",
+        "reason": "Driver's ETA claim is unverified and contradictory (previously reported stuck in traffic, now earlier than 11:00 appointment). Need clarification on whether 10:30 refers to gate arrival or dock D2 arrival."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:00",
+      "actor": "COORDINATOR QUEUE",
+      "text": "ETA_UPDATE for SHP1013 (priority 55) -> QUEUED"
+    },
+    {
+      "time": "10:10",
+      "actor": "GATE",
+      "text": "SHP1007 checked in at 10:10 -> ON_PLAN"
+    },
+    {
+      "time": "10:10",
+      "actor": "FACILITY",
+      "text": "Dock D1 hydraulic leveller failed at 10:10. Out of service until approximately 13:00.",
+      "kind": "FACILITY_OUTAGE_REPORT"
+    },
+    {
+      "time": "10:10",
+      "actor": "TRIAGE",
+      "text": "NO_ACTION / VERIFIED / ask NONE",
+      "kind": "FACILITY_OUTAGE_REPORT",
+      "correct": true,
+      "expected": "VERIFIED DOCK_OUTAGE for D1",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "NO_ACTION",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "DOCK_OUTAGE",
+          "shipment_id": null,
+          "claimed_eta": null,
+          "dock_code": "D1",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "FAC-JAI-01",
+          "10:10",
+          "D1",
+          "13:00"
+        ],
+        "question": null,
+        "reason": "Facility dock supervisor directly reported Dock D1 hydraulic leveller failure at 10:10 with estimated return 13:00; facility is authoritative source for dock status."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:10",
+      "actor": "SYSTEM",
+      "text": "Verified outage applied to dock D1 10:10-13:00; 3 appointment(s) affected"
+    },
+    {
+      "time": "10:10",
+      "actor": "COORDINATOR QUEUE",
+      "text": "DOCK_OUTAGE for SHP1007 (priority 120) -> QUEUED"
+    },
+    {
+      "time": "10:10",
+      "actor": "DISPATCH",
+      "text": "NO_FEASIBLE_OPTION / UNVERIFIED / ask NONE",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "NO_FEASIBLE_OPTION",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "NO_FEASIBLE_OPTION",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "DOCK_OUTAGE",
+          "shipment_id": "SHP1014",
+          "claimed_eta": null,
+          "dock_code": "D1",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "now: 10:10",
+          "reason: dock D1 outage",
+          "shipment.id: SHP1014",
+          "shipment.priority: CRITICAL",
+          "shipment.required_dock_type: STANDARD",
+          "shipment.temperature_control_required: false",
+          "shipment.load_weight_kg: 21000",
+          "shipment.expected_unload_min: 75",
+          "shipment.planning_eta: 11:25",
+          "deterministic_feasibility.feasible_ids: []"
+        ],
+        "question": null,
+        "reason": "No feasible slots available due to dock D1 outage and no alternative slots in the schedule."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:10",
+      "actor": "COORDINATOR QUEUE",
+      "text": "NO_FEASIBLE_SLOT for SHP1014 (priority 105) -> QUEUED"
+    },
+    {
+      "time": "10:10",
+      "actor": "DISPATCH",
+      "text": "PROPOSE / VERIFIED / ask NONE / selected SLOT-JAI-020",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-020', 'SLOT-JAI-034', 'SLOT-JAI-048']...",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": "SLOT-JAI-020",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "OTHER",
+          "shipment_id": "SHP1017",
+          "claimed_eta": null,
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "now:10:10",
+          "reason:dock D1 outage",
+          "shipment.id:SHP1017",
+          "shipment.planning_eta:12:15",
+          "feasible_ids:SLOT-JAI-020,SLOT-JAI-034,SLOT-JAI-048,SLOT-JAI-007,SLOT-JAI-021,SLOT-JAI-035"
+        ],
+        "question": null,
+        "reason": "Earliest feasible slot at 13:00 on dock D2 (STANDARD) matches shipment requirements and passes all deterministic checks."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:10",
+      "actor": "BOT -> DRV001",
+      "text": "Proposed dock D2 13:00-14:00 for ORD-260804-017, pending facility confirmation."
+    },
+    {
+      "time": "10:20",
+      "actor": "DRIVER DRV009 (FALSE_ARRIVAL)",
+      "text": "At gate, ORD-260804-009 \u2013 give me a dock now!",
+      "kind": "FALSE_ARRIVAL"
+    },
+    {
+      "time": "10:20",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask FACILITY / selected DRV009",
+      "kind": "FALSE_ARRIVAL",
+      "correct": true,
+      "expected": "UNVERIFIED; ask FACILITY (or COORDINATOR) to check",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "FACILITY",
+        "selected_id": "DRV009",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ARRIVAL_CLAIM",
+          "shipment_id": "SHP1009",
+          "claimed_eta": null,
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "driver_ref: DRV009",
+          "order_reference: ORD-260804-009",
+          "appointment: dock D4 start 11:00 end 12:00 status CONFIRMED",
+          "verified_dock_events: dock D1 from 10:10 until 13:00"
+        ],
+        "question": "Is driver DRV009 checked in at the gate for shipment SHP1009, and is dock D4 available for early arrival?",
+        "reason": "Driver claims arrival at gate but no gate check-in recorded; appointment starts at 11:00; need facility confirmation of gate presence and dock availability."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:20",
+      "actor": "BOT -> FACILITY",
+      "text": "Is driver DRV009 checked in at the gate for shipment SHP1009, and is dock D4 available for early arrival?"
+    },
+    {
+      "time": "10:20",
+      "actor": "DRIVER DRV010 (REPEATER)",
+      "text": "ORD-260804-010 dock slot confirmed?",
+      "kind": "STATUS_QUESTION"
+    },
+    {
+      "time": "10:20",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / NOT_APPLICABLE / ask FACILITY / selected ORD-260804-010",
+      "kind": "STATUS_QUESTION",
+      "correct": false,
+      "expected": "answer the status question without escalation",
+      "raw": {
+        "verification": "NOT_APPLICABLE",
+        "action": "CLARIFY",
+        "ask_whom": "FACILITY",
+        "selected_id": "ORD-260804-010",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "QUESTION",
+          "shipment_id": "SHP1010",
+          "claimed_eta": null,
+          "dock_code": "D5",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "ORD-260804-010",
+          "11:10",
+          "D5",
+          "11:00",
+          "12:00",
+          "CONFIRMED",
+          "D1",
+          "10:10",
+          "13:00"
+        ],
+        "question": "Is dock D5 confirmed for ORD-260804-010 appointment 11:00-12:00?",
+        "reason": "Driver asks for dock slot confirmation; facility can verify dock D5 status for appointment."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:20",
+      "actor": "GUARD",
+      "text": "Facility cannot verify an in-transit ETA or slot status; handled without a facility request"
+    },
+    {
+      "time": "10:20",
+      "actor": "BOT -> DRV010",
+      "text": "Your slot: dock D5 11:00-12:00 (confirmed)."
+    },
+    {
+      "time": "10:20",
+      "actor": "DRIVER DRV013 (VAGUE)",
+      "text": "dock slot confirmed? ORD-260804-013",
+      "kind": "STATUS_QUESTION"
+    },
+    {
+      "time": "10:20",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask FACILITY / selected ORD-260804-013",
+      "kind": "STATUS_QUESTION",
+      "correct": false,
+      "expected": "answer the status question without escalation",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "FACILITY",
+        "selected_id": "ORD-260804-013",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "QUESTION",
+          "shipment_id": "ORD-260804-013",
+          "claimed_eta": "10:30",
+          "dock_code": "D2",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "now:10:20",
+          "driver_ref:DRV013",
+          "order_reference:ORD-260804-013",
+          "shipment_id:SHP1013",
+          "destination:FAC-JAI-01",
+          "appointment_dock:D2",
+          "appointment_start:11:00",
+          "appointment_end:12:00",
+          "appointment_status:PENDING_CONFIRMATION",
+          "verified_dock_events:D1 from 10:10 until 13:00",
+          "thread_driver_eta:10:30",
+          "thread_driver_question:dock slot confirmed? ORD-260804-013"
+        ],
+        "question": "Is dock D2 confirmed for order ORD-260804-013 (shipment SHP1013) for the 11:00-12:00 appointment?",
+        "reason": "Driver asks if dock slot is confirmed; appointment status is PENDING_CONFIRMATION with no facility confirmation yet; need facility to verify dock availability and confirmation status."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:20",
+      "actor": "GUARD",
+      "text": "Facility cannot verify an in-transit ETA or slot status; handled without a facility request"
+    },
+    {
+      "time": "10:20",
+      "actor": "BOT -> DRV013",
+      "text": "Your slot: dock D2 11:00-12:00 (pending confirmation)."
+    },
+    {
+      "time": "10:30",
+      "actor": "GATE",
+      "text": "SHP1013 checked in at 10:30 -> ON_PLAN"
+    },
+    {
+      "time": "10:30",
+      "actor": "COORDINATOR",
+      "text": "Closed ETA_UPDATE for SHP1013"
+    },
+    {
+      "time": "10:30",
+      "actor": "DRIVER DRV011 (OPTIMISTIC)",
+      "text": "Late but on track, ETA 11:20 for ORD-260804-011.",
+      "kind": "CLEAR_ETA"
+    },
+    {
+      "time": "10:30",
+      "actor": "TRIAGE",
+      "text": "PROPOSE / UNVERIFIED / ask NONE",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 11:20 for SHP1011",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1011",
+          "claimed_eta": "11:20",
+          "dock_code": "D6",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "ORD-260804-011",
+          "11:20",
+          "SHP1011",
+          "D6",
+          "11:00",
+          "12:30",
+          "D1",
+          "10:10",
+          "13:00",
+          "10:30"
+        ],
+        "question": null,
+        "reason": "Driver reports ETA 11:20 for shipment SHP1011 (ORD-260804-011) with appointment at D6 11:00-12:30. No independent confirmation (gate check-in, facility message, or verified dock event for D6). Verification remains UNVERIFIED. Propose ETA update for dispatch re-planning."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:30",
+      "actor": "SYSTEM",
+      "text": "SHP1011: claimed ETA 11:20 still fits the current slot"
+    },
+    {
+      "time": "10:30",
+      "actor": "FACILITY",
+      "text": "There is no gate check-in for order ORD-260804-009; the truck is not at the gate.",
+      "kind": "FACILITY_REPLY"
+    },
+    {
+      "time": "10:30",
+      "actor": "TRIAGE",
+      "text": "NO_ACTION / VERIFIED / ask NONE",
+      "kind": "FACILITY_REPLY",
+      "correct": true,
+      "expected": "confirms_claim=False",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "NO_ACTION",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "OTHER",
+          "shipment_id": "SHP1009",
+          "claimed_eta": null,
+          "dock_code": null,
+          "confirms_claim": false
+        },
+        "evidence": [
+          "now: 10:30",
+          "facility_id: FAC-JAI-01",
+          "message: There is no gate check-in for order ORD-260804-009; the truck is not at the gate.",
+          "verification_request: {\"claim_type\":\"ARRIVAL_CLAIM\",\"shipment_id\":\"SHP1009\"}",
+          "gate_checkins: {\"SHP1007\":\"10:10\",\"SHP1013\":\"10:30\"}",
+          "verified_dock_events: [{\"dock\":\"D1\",\"from\":\"10:10\",\"until\":\"13:00\"}]"
+        ],
+        "question": null,
+        "reason": "Facility (dock supervisor) explicitly confirms no gate check-in for order ORD-260804-009 and truck not at gate, independently verifying the arrival claim for SHP1009 is false."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:30",
+      "actor": "BOT -> DRV009",
+      "text": "The gate has no check-in for your truck yet. What time will you actually reach the gate?"
+    },
+    {
+      "time": "10:40",
+      "actor": "COORDINATOR",
+      "text": "Reviewed dock D1 report (confirmed by phone)"
+    },
+    {
+      "time": "10:40",
+      "actor": "COORDINATOR",
+      "text": "Manual re-plan for SHP1014 (overtime/alternate facility decision)"
+    },
+    {
+      "time": "10:40",
+      "actor": "DRIVER DRV009 (FALSE_ARRIVAL)",
+      "text": "Dock D2 broken, trucks stuck. Need a dock now!",
+      "kind": "FALSE_OUTAGE_CLAIM"
+    },
+    {
+      "time": "10:40",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask FACILITY / selected msg-1",
+      "kind": "FALSE_OUTAGE_CLAIM",
+      "correct": false,
+      "expected": "UNVERIFIED; ask FACILITY (or COORDINATOR) to check",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "FACILITY",
+        "selected_id": "msg-1",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "DOCK_OUTAGE",
+          "shipment_id": "ORD-260804-009",
+          "claimed_eta": null,
+          "dock_code": "D2",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "driver message: 'Dock D2 broken, trucks stuck. Need a dock now!'",
+          "driver assignment: shipment SHP1009, order ORD-260804-009, appointment dock D4 11:00-12:00 CONFIRMED",
+          "verified dock events: Dock D1 from 10:10 until 13:00",
+          "gate check-ins: none for this truck"
+        ],
+        "question": "Is Dock D2 currently out of service, and what docks are available for shipment ORD-260804-009?",
+        "reason": "Driver claims Dock D2 is broken, but there is no independent facility confirmation. The driver's appointment is at Dock D4 at 11:00. Facility can verify dock status and assign an available dock."
+      },
+      "violations": [
+        "selected_id msg-1 does not appear in the input"
+      ],
+      "ungrounded": []
+    },
+    {
+      "time": "10:40",
+      "actor": "BOT -> FACILITY",
+      "text": "Is Dock D2 currently out of service, and what docks are available for shipment ORD-260804-009?"
+    },
+    {
+      "time": "10:40",
+      "actor": "DRIVER DRV009 (FALSE_ARRIVAL)",
+      "text": "ORD-260804-009, reaching gate 11:05. Need dock now, no check-in yet.",
+      "kind": "CLARIFICATION_REPLY"
+    },
+    {
+      "time": "10:40",
+      "actor": "TRIAGE",
+      "text": "PROPOSE / UNVERIFIED / ask FACILITY / selected ORD-260804-009",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 11:05 for SHP1009",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "FACILITY",
+        "selected_id": "ORD-260804-009",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1009",
+          "claimed_eta": "11:05",
+          "dock_code": "D4",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "ORD-260804-009",
+          "11:05",
+          "10:40",
+          "SHP1009",
+          "D4",
+          "11:00",
+          "12:00",
+          "D1",
+          "10:10",
+          "13:00",
+          "D2 broken"
+        ],
+        "question": "Is dock D4 available for ORD-260804-009 at 11:05?",
+        "reason": "Driver provided ETA 11:05 for shipment ORD-260804-009 (SHP1009) with appointment at D4 11:00-12:00. No gate check-in yet. Verified dock event shows D1 occupied 10:10-13:00. Driver claims D2 broken. Need facility confirmation on dock D4 availability."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:40",
+      "actor": "GUARD",
+      "text": "Facility cannot verify an in-transit ETA or slot status; handled without a facility request"
+    },
+    {
+      "time": "10:40",
+      "actor": "SYSTEM",
+      "text": "SHP1009: claimed ETA 11:05 still fits the current slot"
+    },
+    {
+      "time": "10:50",
+      "actor": "DRIVER DRV014 (OPTIMISTIC)",
+      "text": "Running late, be there ~11:25 for ORD-260804-014",
+      "kind": "CLEAR_ETA"
+    },
+    {
+      "time": "10:50",
+      "actor": "TRIAGE",
+      "text": "PROPOSE / UNVERIFIED / ask NONE / selected DRV014",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 11:25 for SHP1014",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": "DRV014",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "ORD-260804-014",
+          "claimed_eta": "11:25",
+          "dock_code": "D1",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "Driver message: 'Running late, be there ~11:25 for ORD-260804-014'",
+          "Appointment: dock D1, start 11:00, end 12:00, status PENDING_CONFIRMATION",
+          "Verified dock event: dock D1 occupied from 10:10 until 13:00"
+        ],
+        "question": null,
+        "reason": "Driver provides ETA update for shipment ORD-260804-014 (SHP1014) claiming arrival ~11:25, which is 25 minutes after appointment start. No independent confirmation of driver's ETA exists; verified dock event shows dock D1 occupied until 13:00, indicating potential dock conflict. Propose ETA update for dispatch re-planning."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "10:50",
+      "actor": "SYSTEM",
+      "text": "SHP1014: claimed ETA 11:25 still fits the current slot"
+    },
+    {
+      "time": "10:50",
+      "actor": "FACILITY",
+      "text": "Dock D2 is operating normally and not out of service.",
+      "kind": "FACILITY_REPLY"
+    },
+    {
+      "time": "10:50",
+      "actor": "TRIAGE",
+      "text": "NO_ACTION / VERIFIED / ask NONE",
+      "kind": "FACILITY_REPLY",
+      "correct": true,
+      "expected": "confirms_claim=False",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "NO_ACTION",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "DOCK_OUTAGE",
+          "shipment_id": null,
+          "claimed_eta": null,
+          "dock_code": "D2",
+          "confirms_claim": false
+        },
+        "evidence": [
+          "FAC-JAI-01",
+          "Dock D2 is operating normally and not out of service.",
+          "DOCK_OUTAGE",
+          "D2",
+          "SHP1007:10:10",
+          "SHP1013:10:30",
+          "D1:10:10-13:00"
+        ],
+        "question": null,
+        "reason": "Facility supervisor explicitly confirms Dock D2 is operating normally, directly verifying the dock outage claim as false."
+      },
+      "violations": [],
+      "ungrounded": [
+        "1:10"
+      ]
+    },
+    {
+      "time": "10:50",
+      "actor": "BOT -> DRV009",
+      "text": "Facility reports dock D2 is operating normally; no change made."
+    },
+    {
+      "time": "11:00",
+      "actor": "DRIVER DRV007 (REPEATER)",
+      "text": "Running late. ORD-260804-016 ETA 12:20.",
+      "kind": "CLEAR_ETA"
+    },
+    {
+      "time": "11:00",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask DRIVER / selected ORD-260804-016",
+      "kind": "CLEAR_ETA",
+      "correct": false,
+      "expected": "PROPOSE/UNVERIFIED with ETA 12:20 for SHP1016",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "DRIVER",
+        "selected_id": "ORD-260804-016",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1016",
+          "claimed_eta": "12:20",
+          "dock_code": "D6",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "now: 11:00",
+          "driver_ref: DRV007",
+          "message: Running late. ORD-260804-016 ETA 12:20.",
+          "thread[0]: Late. ORD-260804-007. ETA 10:10.",
+          "thread[1]: Running late. ORD-260804-016 ETA 12:20.",
+          "driver_assignments: SHP1007 ORD-260804-007 AT_FACILITY dock D1 10:00-11:00 CONFIRMED",
+          "driver_assignments: SHP1016 ORD-260804-016 IN_TRANSIT dock D6 12:30-14:00 PENDING_CONFIRMATION",
+          "gate_checkins: SHP1007 10:10",
+          "verified_dock_events: D1 10:10-13:00"
+        ],
+        "question": "You said 'Running late' but your ETA 12:20 is before the 12:30 appointment start. Did you mean a different time or shipment?",
+        "reason": "Driver claims ETA 12:20 for ORD-260804-016 (SHP1016) but appointment starts at 12:30; the statement 'Running late' contradicts the claimed ETA. No independent verification (GPS, gate check-in, dock event) exists for this shipment. Need driver clarification."
+      },
+      "violations": [],
+      "ungrounded": [
+        "0"
+      ]
+    },
+    {
+      "time": "11:00",
+      "actor": "BOT -> DRV007",
+      "text": "You said 'Running late' but your ETA 12:20 is before the 12:30 appointment start. Did you mean a different time or shipment?"
+    },
+    {
+      "time": "11:10",
+      "actor": "GATE",
+      "text": "SHP1010 checked in at 11:10 -> ON_PLAN"
+    },
+    {
+      "time": "11:10",
+      "actor": "GATE",
+      "text": "SHP1012 checked in at 11:10 -> EARLY_WAIT"
+    },
+    {
+      "time": "11:10",
+      "actor": "DRIVER DRV007 (REPEATER)",
+      "text": "Running late. ORD-260804-016 ETA 12:20.",
+      "kind": "RESEND"
+    },
+    {
+      "time": "11:10",
+      "actor": "SYSTEM",
+      "text": "Duplicate message suppressed before any agent call or alert"
+    },
+    {
+      "time": "11:10",
+      "actor": "DRIVER DRV007 (REPEATER)",
+      "text": "ORD-260804-016, ETA 12:20.",
+      "kind": "CLARIFICATION_REPLY"
+    },
+    {
+      "time": "11:10",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask DRIVER / selected ORD-260804-016",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": false,
+      "expected": "PROPOSE/UNVERIFIED with ETA 12:20 for SHP1016",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "DRIVER",
+        "selected_id": "ORD-260804-016",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "ORD-260804-016",
+          "claimed_eta": "12:20",
+          "dock_code": "D6",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "now: 11:10",
+          "driver_ref: DRV007",
+          "message: ORD-260804-016, ETA 12:20.",
+          "thread: Late. ORD-260804-007. ETA 10:10.",
+          "thread: Running late. ORD-260804-016 ETA 12:20.",
+          "thread: You said 'Running late' but your ETA 12:20 is before the 12:30 appointment start. Did you mean a different time or shipment?",
+          "thread: ORD-260804-016, ETA 12:20.",
+          "driver_assignments: SHP1016 order_reference ORD-260804-016 destination FAC-JAI-01 status IN_TRANSIT appointment dock D6 start 12:30 end 14:00 status PENDING_CONFIRMATION",
+          "gate_checkins: SHP1007 10:10",
+          "verified_dock_events: dock D1 from 10:10 until 13:00"
+        ],
+        "question": "Please confirm: you said 'Running late' but your ETA 12:20 is before the 12:30 appointment start for ORD-260804-016. Is the ETA 12:20 correct, or did you mean a different time or shipment?",
+        "reason": "Driver's ETA claim for ORD-260804-016 is unverified and contradicts earlier 'Running late' statement; needs clarification from driver."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "11:10",
+      "actor": "BOT -> DRV007",
+      "text": "Please confirm: you said 'Running late' but your ETA 12:20 is before the 12:30 appointment start for ORD-260804-016. Is the ETA 12:20 correct, or did you mean a different time or shipment?"
+    },
+    {
+      "time": "11:20",
+      "actor": "DRIVER DRV007 (REPEATER)",
+      "text": "ORD-260804-016, ETA 12:20.",
+      "kind": "RESEND"
+    },
+    {
+      "time": "11:20",
+      "actor": "SYSTEM",
+      "text": "Duplicate message suppressed before any agent call or alert"
+    },
+    {
+      "time": "11:20",
+      "actor": "DRIVER DRV007 (REPEATER)",
+      "text": "ORD-260804-016, ETA 12:20.",
+      "kind": "CLARIFICATION_REPLY"
+    },
+    {
+      "time": "11:20",
+      "actor": "SYSTEM",
+      "text": "Duplicate message suppressed before any agent call or alert"
+    },
+    {
+      "time": "11:30",
+      "actor": "GATE",
+      "text": "SHP1009 checked in at 11:25 -> ON_PLAN"
+    },
+    {
+      "time": "11:40",
+      "actor": "DRIVER DRV006 (VAGUE)",
+      "text": "Traffic jam, gonna be late",
+      "kind": "AMBIGUOUS"
+    },
+    {
+      "time": "11:40",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask DRIVER",
+      "kind": "AMBIGUOUS",
+      "correct": true,
+      "expected": "CLARIFY with DRIVER",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "DRIVER",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": null,
+          "claimed_eta": null,
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "Driver message: 'Traffic jam, gonna be late'",
+          "Assignments: SHP1006 (FAC-JAI-01, dock D4, appointment 10:00-11:00 CONFIRMED), SHP1021 (FAC-GGN-01, no appointment)"
+        ],
+        "question": "Which shipment are you referring to, and what is your new estimated arrival time?",
+        "reason": "Driver reports delay but does not specify which shipment or provide a new ETA; clarification needed before any re-planning."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "11:40",
+      "actor": "BOT -> DRV006",
+      "text": "Which shipment are you referring to, and what is your new estimated arrival time?"
+    },
+    {
+      "time": "11:40",
+      "actor": "DRIVER DRV007 (REPEATER)",
+      "text": "Dock slot confirmed for ORD-260804-016?",
+      "kind": "STATUS_QUESTION"
+    },
+    {
+      "time": "11:40",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / NOT_APPLICABLE / ask FACILITY / selected SHP1016",
+      "kind": "STATUS_QUESTION",
+      "correct": false,
+      "expected": "answer the status question without escalation",
+      "raw": {
+        "verification": "NOT_APPLICABLE",
+        "action": "CLARIFY",
+        "ask_whom": "FACILITY",
+        "selected_id": "SHP1016",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "QUESTION",
+          "shipment_id": "SHP1016",
+          "claimed_eta": null,
+          "dock_code": "D6",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "driver_assignments: SHP1016 order_reference ORD-260804-016 appointment dock D6 start 12:30 end 14:00 status PENDING_CONFIRMATION",
+          "thread: DRIVER 'Dock slot confirmed for ORD-260804-016?'",
+          "thread: DISPATCH_BOT 'Please confirm: you said Running late but your ETA 12:20 is before the 12:30 appointment start for ORD-260804-016.'"
+        ],
+        "question": "Is the dock slot for ORD-260804-016 (shipment SHP1016) at dock D6 confirmed for the 12:30-14:00 appointment?",
+        "reason": "Driver is asking for confirmation of dock slot; appointment status is PENDING_CONFIRMATION and no facility confirmation exists. Facility must verify dock status."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "11:40",
+      "actor": "GUARD",
+      "text": "Facility cannot verify an in-transit ETA or slot status; handled without a facility request"
+    },
+    {
+      "time": "11:40",
+      "actor": "BOT -> DRV007",
+      "text": "Your slot: dock D6 12:30-14:00 (pending confirmation)."
+    },
+    {
+      "time": "11:50",
+      "actor": "DRIVER DRV006 (VAGUE)",
+      "text": "ORD-260804-006, reaching around 12:40",
+      "kind": "CLARIFICATION_REPLY"
+    },
+    {
+      "time": "11:50",
+      "actor": "TRIAGE",
+      "text": "PROPOSE / UNVERIFIED / ask NONE / selected ORD-260804-006",
+      "kind": "CLARIFICATION_REPLY",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 12:40 for SHP1006",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": "ORD-260804-006",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "ORD-260804-006",
+          "claimed_eta": "12:40",
+          "dock_code": "D4",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "ORD-260804-006",
+          "12:40",
+          "10:00",
+          "11:00",
+          "D4",
+          "11:50"
+        ],
+        "question": null,
+        "reason": "Driver reports new ETA 12:40 for shipment ORD-260804-006 (appointment was 10:00-11:00 at D4). No independent confirmation (gate check-in or facility message) exists, so verification remains UNVERIFIED. The claim is clear and attributable; propose ETA update for dispatch re-planning."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "11:50",
+      "actor": "DISPATCH",
+      "text": "PROPOSE / UNVERIFIED / ask NONE / selected SLOT-JAI-034",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-034', 'SLOT-JAI-048', 'SLOT-JAI-007']...",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": "SLOT-JAI-034",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1006",
+          "claimed_eta": "12:40",
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "SHP1006",
+          "12:40",
+          "SLOT-JAI-034",
+          "13:00",
+          "14:00",
+          "SLOT-JAI-048",
+          "13:00",
+          "14:00",
+          "SLOT-JAI-007",
+          "14:00",
+          "15:00",
+          "SLOT-JAI-021",
+          "14:00",
+          "15:00",
+          "SLOT-JAI-035",
+          "14:00",
+          "15:00",
+          "SLOT-JAI-049",
+          "14:00",
+          "15:00"
+        ],
+        "question": null,
+        "reason": "Driver-declared ETA 12:40 is unverified; earliest feasible slots start at 13:00. Proposing SLOT-JAI-034 (D3, 13:00-14:00) as the first available standard dock."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "11:50",
+      "actor": "BOT -> DRV006",
+      "text": "Proposed dock D3 13:00-14:00 for ORD-260804-006, pending facility confirmation."
+    },
+    {
+      "time": "12:10",
+      "actor": "GATE",
+      "text": "SHP1011 checked in at 12:10 -> MISSED_SLOT"
+    },
+    {
+      "time": "12:10",
+      "actor": "DISPATCH",
+      "text": "PROPOSE / VERIFIED / ask NONE / selected SLOT-JAI-075",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "select one of ['SLOT-JAI-075', 'SLOT-JAI-076', 'SLOT-JAI-077']...",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": "SLOT-JAI-075",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ARRIVAL_CLAIM",
+          "shipment_id": "SHP1011",
+          "claimed_eta": "12:10",
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "now:12:10",
+          "shipment.id:SHP1011",
+          "shipment.planning_eta:12:10",
+          "shipment.required_dock_type:HEAVY",
+          "shipment.load_weight_kg:30000",
+          "shipment.expected_unload_min:90",
+          "deterministic_feasibility.feasible_ids:[\"SLOT-JAI-075\",\"SLOT-JAI-076\",\"SLOT-JAI-077\",\"SLOT-JAI-078\",\"SLOT-JAI-079\"]",
+          "SLOT-JAI-075.start:14:00",
+          "SLOT-JAI-075.end:15:30",
+          "SLOT-JAI-075.dock:D6",
+          "SLOT-JAI-075.dock_type:HEAVY"
+        ],
+        "question": null,
+        "reason": "Truck verified at gate at 12:10; earliest feasible slot is SLOT-JAI-075 starting 14:00 on D6 (HEAVY) which meets all constraints."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "12:10",
+      "actor": "BOT -> DRV011",
+      "text": "Proposed dock D6 14:00-15:30 for ORD-260804-011, pending facility confirmation."
+    },
+    {
+      "time": "12:20",
+      "actor": "GATE",
+      "text": "SHP1016 checked in at 12:20 -> ON_PLAN"
+    },
+    {
+      "time": "12:20",
+      "actor": "DRIVER DRV006 (VAGUE)",
+      "text": "dock slot confirmed ORD-260804-006?",
+      "kind": "STATUS_QUESTION"
+    },
+    {
+      "time": "12:20",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / NOT_APPLICABLE / ask FACILITY",
+      "kind": "STATUS_QUESTION",
+      "correct": false,
+      "expected": "answer the status question without escalation",
+      "raw": {
+        "verification": "NOT_APPLICABLE",
+        "action": "CLARIFY",
+        "ask_whom": "FACILITY",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "QUESTION",
+          "shipment_id": "ORD-260804-006",
+          "claimed_eta": null,
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "now:12:20",
+          "driver_ref:DRV006",
+          "message:dock slot confirmed ORD-260804-006?",
+          "thread[2]:ORD-260804-006, reaching around 12:40",
+          "assignment:SHP1006,ORD-260804-006,FAC-JAI-01,D3,13:00,14:00,PENDING_CONFIRMATION",
+          "verified_dock_events:D1,10:10,13:00"
+        ],
+        "question": "Is dock D3 confirmed for shipment ORD-260804-006 (SHP1006) for the 13:00-14:00 appointment?",
+        "reason": "Driver is asking for confirmation of dock slot for ORD-260804-006; appointment status is PENDING_CONFIRMATION and no facility confirmation exists in thread. Facility can confirm dock status."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "12:20",
+      "actor": "GUARD",
+      "text": "Facility cannot verify an in-transit ETA or slot status; handled without a facility request"
+    },
+    {
+      "time": "12:20",
+      "actor": "BOT -> DRV006",
+      "text": "Your slot: dock D3 13:00-14:00 (pending confirmation)."
+    },
+    {
+      "time": "12:30",
+      "actor": "GATE",
+      "text": "SHP1014 checked in at 12:25 -> MISSED_SLOT"
+    },
+    {
+      "time": "12:30",
+      "actor": "DISPATCH",
+      "text": "NO_FEASIBLE_OPTION / VERIFIED / ask NONE",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "NO_FEASIBLE_OPTION",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "NO_FEASIBLE_OPTION",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ARRIVAL_CLAIM",
+          "shipment_id": "SHP1014",
+          "claimed_eta": "12:30",
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "deterministic_feasibility.feasible_ids: []",
+          "deterministic_feasibility.note: Only these slots passed ETA, compatibility, duration, dock-event and occupancy checks."
+        ],
+        "question": null,
+        "reason": "No feasible slots available for shipment SHP1014 at this time."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "12:30",
+      "actor": "COORDINATOR QUEUE",
+      "text": "NO_FEASIBLE_SLOT for SHP1014 (priority 105) -> QUEUED"
+    },
+    {
+      "time": "12:40",
+      "actor": "GATE",
+      "text": "SHP1006 checked in at 12:40 -> ON_PLAN"
+    },
+    {
+      "time": "12:40",
+      "actor": "DRIVER DRV001 (FALSE_ARRIVAL)",
+      "text": "At gate now, ORD-260804-017. Need a dock ASAP!",
+      "kind": "FALSE_ARRIVAL"
+    },
+    {
+      "time": "12:40",
+      "actor": "TRIAGE",
+      "text": "CLARIFY / UNVERIFIED / ask FACILITY / selected DRV001",
+      "kind": "FALSE_ARRIVAL",
+      "correct": true,
+      "expected": "UNVERIFIED; ask FACILITY (or COORDINATOR) to check",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "CLARIFY",
+        "ask_whom": "FACILITY",
+        "selected_id": "DRV001",
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ARRIVAL_CLAIM",
+          "shipment_id": "SHP1017",
+          "claimed_eta": "12:40",
+          "dock_code": "D2",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "driver_ref: DRV001",
+          "order_reference: ORD-260804-017",
+          "shipment_id: SHP1017",
+          "appointment dock: D2, start: 13:00, end: 14:00, status: PENDING_CONFIRMATION",
+          "verified_dock_events: dock D1 from 10:10 until 13:00",
+          "gate_checkins: none recorded"
+        ],
+        "question": "Is driver DRV001 at the gate for shipment SHP1017 (ORD-260804-017), and is dock D2 available now or will it be available at 13:00?",
+        "reason": "Driver claims arrival at gate at 12:40 but no gate check-in is recorded; facility confirmation needed for gate status and dock D2 availability before any ETA update."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "12:40",
+      "actor": "BOT -> FACILITY",
+      "text": "Is driver DRV001 at the gate for shipment SHP1017 (ORD-260804-017), and is dock D2 available now or will it be available at 13:00?"
+    },
+    {
+      "time": "12:50",
+      "actor": "COORDINATOR",
+      "text": "Manual re-plan for SHP1014 (overtime/alternate facility decision)"
+    },
+    {
+      "time": "12:50",
+      "actor": "FACILITY",
+      "text": "There is no gate check-in for order ORD-260804-017. Driver DRV001 is not at the gate.",
+      "kind": "FACILITY_REPLY"
+    },
+    {
+      "time": "12:50",
+      "actor": "TRIAGE",
+      "text": "ERROR: NVIDIA output hit the 4096-token limit (finish_reason=length); the model may have used its budget for reasoning. No answer was scored.",
+      "kind": "FACILITY_REPLY",
+      "error": "NVIDIA output hit the 4096-token limit (finish_reason=length); the model may have used its budget for reasoning. No answer was scored."
+    },
+    {
+      "time": "12:50",
+      "actor": "COORDINATOR QUEUE",
+      "text": "ARRIVAL_CLAIM for SHP1017 (priority 50) -> QUEUED"
+    },
+    {
+      "time": "13:20",
+      "actor": "COORDINATOR",
+      "text": "SHP1017: coordinator phone call; true ETA 13:45"
+    },
+    {
+      "time": "13:20",
+      "actor": "BOT -> DRV001",
+      "text": "Proposed dock D1 14:00-15:00 for ORD-260804-017, pending facility confirmation."
+    },
+    {
+      "time": "13:50",
+      "actor": "GATE",
+      "text": "SHP1017 checked in at 13:45 -> ON_PLAN"
+    },
+    {
+      "time": "18:00",
+      "actor": "GATE",
+      "text": "SHP1020 checked in at 18:00 -> ON_PLAN"
+    },
+    {
+      "time": "18:00",
+      "actor": "DRIVER DRV015 (HONEST)",
+      "text": "Running late, will reach around 19:40 for ORD-260804-015",
+      "kind": "CLEAR_ETA"
+    },
+    {
+      "time": "18:00",
+      "actor": "TRIAGE",
+      "text": "PROPOSE / UNVERIFIED / ask NONE",
+      "kind": "CLEAR_ETA",
+      "correct": true,
+      "expected": "PROPOSE/UNVERIFIED with ETA 19:40 for SHP1015",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "PROPOSE",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1015",
+          "claimed_eta": "19:40",
+          "dock_code": "D5",
+          "confirms_claim": null
+        },
+        "evidence": [
+          "DRV015",
+          "ORD-260804-015",
+          "19:40",
+          "SHP1015",
+          "FAC-JAI-01",
+          "D5",
+          "17:00",
+          "18:00",
+          "CONFIRMED",
+          "18:00"
+        ],
+        "question": null,
+        "reason": "Driver claims ETA 19:40 for shipment ORD-260804-015 (SHP1015) appointed at D5 17:00-18:00, now 18:00, no independent verification. Propose ETA update for dispatch re-plan."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "18:00",
+      "actor": "DISPATCH",
+      "text": "NO_FEASIBLE_OPTION / UNVERIFIED / ask NONE",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "NO_FEASIBLE_OPTION",
+      "raw": {
+        "verification": "UNVERIFIED",
+        "action": "NO_FEASIBLE_OPTION",
+        "ask_whom": "NONE",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ETA_UPDATE",
+          "shipment_id": "SHP1015",
+          "claimed_eta": "19:40",
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "shipment.id=SHP1015",
+          "planning_eta=19:40",
+          "reason=driver-declared ETA 19:40, unverified",
+          "deterministic_feasibility.feasible_ids=[]"
+        ],
+        "question": null,
+        "reason": "No feasible slots passed deterministic checks for shipment SHP1015 with driver-declared ETA 19:40 (unverified)."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "18:00",
+      "actor": "COORDINATOR QUEUE",
+      "text": "NO_FEASIBLE_SLOT for SHP1015 (priority 90) -> QUEUED"
+    },
+    {
+      "time": "18:30",
+      "actor": "COORDINATOR",
+      "text": "Manual re-plan for SHP1015 (overtime/alternate facility decision)"
+    },
+    {
+      "time": "19:40",
+      "actor": "GATE",
+      "text": "SHP1015 checked in at 19:40 -> MISSED_SLOT"
+    },
+    {
+      "time": "19:40",
+      "actor": "DISPATCH",
+      "text": "NO_FEASIBLE_OPTION / VERIFIED / ask COORDINATOR",
+      "kind": "DISPATCH",
+      "correct": true,
+      "expected": "NO_FEASIBLE_OPTION",
+      "raw": {
+        "verification": "VERIFIED",
+        "action": "NO_FEASIBLE_OPTION",
+        "ask_whom": "COORDINATOR",
+        "selected_id": null,
+        "state_change_allowed": false,
+        "extracted": {
+          "report_type": "ARRIVAL_CLAIM",
+          "shipment_id": "SHP1015",
+          "claimed_eta": "19:40",
+          "dock_code": null,
+          "confirms_claim": null
+        },
+        "evidence": [
+          "SHP1015",
+          "19:40",
+          "feasible_ids: []"
+        ],
+        "question": "No feasible slots available for SHP1015; please advise on alternative dock or rescheduling.",
+        "reason": "Truck verified at gate at 19:40 but deterministic feasibility shows zero feasible slots for this shipment."
+      },
+      "violations": [],
+      "ungrounded": []
+    },
+    {
+      "time": "19:40",
+      "actor": "COORDINATOR QUEUE",
+      "text": "NO_FEASIBLE_SLOT for SHP1015 (priority 90) -> QUEUED"
+    },
+    {
+      "time": "20:00",
+      "actor": "COORDINATOR",
+      "text": "Manual re-plan for SHP1015 (overtime/alternate facility decision)"
+    }
+  ],
+  "llm_calls": [
+    {
+      "role": "order_vehicle_assessment",
+      "seconds": 6.487923124994268,
+      "ok": true
+    },
+    {
+      "role": "dispatch",
+      "seconds": 22.401671582993004,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 2.3734576249989914,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 16.973149208002724,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 5.6010711249982705,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 15.559355999997933,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 6.288999458003673,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 10.947654208008316,
+      "ok": true
+    },
+    {
+      "role": "order_vehicle_assessment",
+      "seconds": 6.359027625003364,
+      "ok": true
+    },
+    {
+      "role": "dispatch",
+      "seconds": 9.227766333002364,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 4.263539416002459,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 24.22622404100548,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 13.587400207994506,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 10.299310334012262,
+      "ok": true
+    },
+    {
+      "role": "facility_sim",
+      "seconds": 3.2029883750074077,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 23.025573999999324,
+      "ok": true
+    },
+    {
+      "role": "dispatch",
+      "seconds": 11.328735040995525,
+      "ok": true
+    },
+    {
+      "role": "dispatch",
+      "seconds": 25.846297875003074,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 3.342168083996512,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 12.085142665993772,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 3.210551750002196,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 27.628446791000897,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 3.200583749989164,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 20.64171612499922,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 4.805219999994733,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 10.599625791001017,
+      "ok": true
+    },
+    {
+      "role": "facility_sim",
+      "seconds": 6.609651209000731,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 42.889757833007025,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 5.6336714169883635,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 11.017722624994349,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 4.542780125004356,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 69.6761554160039,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 4.490500166997663,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 24.049657708004816,
+      "ok": true
+    },
+    {
+      "role": "facility_sim",
+      "seconds": 2.8296218749892432,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 16.242863125007716,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 2.7650337910017697,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 26.384049250002136,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 3.5926524580136174,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 33.59708045900334,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 6.330795625006431,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 3.582076999999117,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 7.63189625000814,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 1.0958530000061728,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 14.331162292000954,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 4.135660457992344,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 16.785926915996242,
+      "ok": true
+    },
+    {
+      "role": "dispatch",
+      "seconds": 11.036899791986798,
+      "ok": true
+    },
+    {
+      "role": "dispatch",
+      "seconds": 9.93100429099286,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 6.276687959005358,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 22.14586070799851,
+      "ok": true
+    },
+    {
+      "role": "dispatch",
+      "seconds": 7.6450922090007225,
+      "ok": true
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 3.1752241249923827,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 43.292448459003936,
+      "ok": true
+    },
+    {
+      "role": "facility_sim",
+      "seconds": 9.418972624989692,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 86.42689033401257,
+      "ok": false
+    },
+    {
+      "role": "driver_sim",
+      "seconds": 3.7849293750041397,
+      "ok": true
+    },
+    {
+      "role": "triage",
+      "seconds": 41.0980492499948,
+      "ok": true
+    },
+    {
+      "role": "dispatch",
+      "seconds": 6.737462166012847,
+      "ok": true
+    },
+    {
+      "role": "dispatch",
+      "seconds": 9.888231250006356,
+      "ok": true
+    }
+  ]
+}
