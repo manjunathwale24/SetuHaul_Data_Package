@@ -226,11 +226,11 @@ def _post(payload: dict[str, Any], timeout: float) -> dict[str, Any]:
                 continue
             detail = exc.read().decode("utf-8", errors="replace")[:500]
             raise NVIDIAClientError(f"NVIDIA endpoint returned HTTP {exc.code}: {detail}") from exc
-        except (URLError, TimeoutError) as exc:
+        except (URLError, TimeoutError, ConnectionError) as exc:
             if attempt < MAX_ATTEMPTS:
                 time.sleep(5 * 2 ** (attempt - 1))
                 continue
-            reason = getattr(exc, "reason", "request timed out")
+            reason = getattr(exc, "reason", None) or exc.__class__.__name__
             raise NVIDIAClientError(f"Unable to reach NVIDIA endpoint: {reason}") from exc
     try:
         return json.loads(response_body)

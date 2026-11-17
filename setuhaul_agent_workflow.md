@@ -53,3 +53,17 @@ flowchart TD
 Driver statements are reports, not ground truth. The package has no live GPS, so an ETA cannot be independently location-verified; use available structured records, confidence, and human confirmation where needed. A report alone must not silently mark a dock unavailable or turn a proposed slot into a confirmed booking.
 
 Implementation: `guards.py` (feasibility filters, selection guard, evidence grounding, coordinator priority queue), `nvidia_agents.py` (agent prompts and schema), `nvidia_agent_evals.py` (scenario evals), and `sandbox.py` (live run with role-played drivers and facility staff). Coordinator alerts are ranked by impact; repeats of a pending alert are merged, and items below the review threshold go to a low-priority digest instead of a coordinator.
+
+## Brief scenario run
+
+The sandbox generates random personas, so it repeats a few situation types and never touches most of the brief's ladder. `brief_scenarios.py` replays one distinct scenario per brief problem from the real seed data (S1 options only, S2 missing facts, S3 rules, S4 five trucks competing, S5 world changes, S6 no slot, S7 resequence, S8 driver claims and refusals). The NVIDIA agents advise behind the guards; `slot_engine.py` owns every state change. It re-checks feasibility inside a write transaction at hold, request and confirm. Holds expire after 10 minutes. Requests and replays are idempotent, and a long unload also claims the following slot. `race_for_slot` is the concurrency proof.
+
+- `python3 brief_scenarios.py` — live agents; writes `brief_scenarios.json` and `brief_simulation.html` (a coverage matrix plus a step-through dock board per scenario)
+- `python3 brief_scenarios.py --offline` — deterministic stand-in agent, no network
+- `python3 brief_scenarios.py --render` — re-render the HTML from saved JSON
+
+Data issues the run surfaces:
+
+- APT1014A (21,000 kg) is pending on D1, which has a 20,000 kg limit.
+- 75-minute unloads (APT1002, APT1005, APT1009, APT1014A) overrun into the next booked slot.
+- OM004 went to a night-shift address that has no FAC-JAI-01 contact.
