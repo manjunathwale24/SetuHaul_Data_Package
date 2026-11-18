@@ -1,13 +1,13 @@
 {
  "model": "nvidia/nemotron-3-ultra-550b-a55b",
  "mode": "live",
- "seconds": 588.0,
+ "seconds": 408.6,
  "measures": {
-  "agent_decision_accuracy": 0.852,
+  "agent_decision_accuracy": 1.0,
   "agent_calls": 27,
   "agent_errors": 0,
-  "guard_interventions": 13,
-  "ungrounded_answers": 1,
+  "guard_interventions": 1,
+  "ungrounded_answers": 2,
   "resolved_without_takeover": 0.62,
   "conflicting_allocations": 0,
   "options_infeasible_at_recheck": 1,
@@ -20,8 +20,8 @@
   "utilisation_11_14_standard": 0.7,
   "avg_wait_before": 83.3,
   "avg_wait_after": 78.3,
-  "mean_agent_latency_s": 21.8,
-  "workflow_confidence": 92.6
+  "mean_agent_latency_s": 15.1,
+  "workflow_confidence": 100.0
  },
  "coverage": {
   "ladder": {
@@ -261,7 +261,7 @@
     "stale_caught": 0,
     "agent_calls": 2,
     "agent_correct": 2,
-    "guard_interventions": 1,
+    "guard_interventions": 0,
     "minutes_to_outcome": 3,
     "turns_to_outcome": 3,
     "integrity": {
@@ -620,7 +620,7 @@
     {
      "t": "10:02",
      "actor": "TRIAGE",
-     "text": "Triage THR011 → NO_ACTION [NOT_APPLICABLE]",
+     "text": "Triage THR011 → PROPOSE [UNVERIFIED]",
      "tags": [
       "H"
      ],
@@ -663,15 +663,15 @@
        "independent_confirmation": []
       },
       "raw": {
-       "verification": "NOT_APPLICABLE",
-       "action": "NO_ACTION",
+       "verification": "UNVERIFIED",
+       "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "QUESTION",
         "shipment_id": "SHP1017",
-        "claimed_eta": null,
+        "claimed_eta": "12:45",
         "dock_code": null,
         "confirms_claim": null
        },
@@ -684,21 +684,25 @@
         "APT1017",
         "SLOT-JAI-005",
         "D1",
-        "12:00"
+        "12:00",
+        "ETA012",
+        "12:45",
+        "LOW",
+        "between 12:30 and 13:00"
        ],
        "question": null,
-       "reason": "Driver is asking about future slot availability, not making a factual claim that requires verification."
+       "reason": "Driver requesting slot options after 1 PM with stated ETA around 12:45; current appointment at 12:00. Propose re-planning via deterministic scheduler."
       },
       "guarded": {
-       "verification": "NOT_APPLICABLE",
-       "action": "NO_ACTION",
+       "verification": "UNVERIFIED",
+       "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "QUESTION",
         "shipment_id": "SHP1017",
-        "claimed_eta": null,
+        "claimed_eta": "12:45",
         "dock_code": null,
         "confirms_claim": null
        },
@@ -711,16 +715,20 @@
         "APT1017",
         "SLOT-JAI-005",
         "D1",
-        "12:00"
+        "12:00",
+        "ETA012",
+        "12:45",
+        "LOW",
+        "between 12:30 and 13:00"
        ],
        "question": null,
-       "reason": "Driver is asking about future slot availability, not making a factual claim that requires verification."
+       "reason": "Driver requesting slot options after 1 PM with stated ETA around 12:45; current appointment at 12:00. Propose re-planning via deterministic scheduler."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 12.8,
+      "seconds": 13.9,
       "expect": {
        "actions": [
         "NO_ACTION",
@@ -744,7 +752,7 @@
     {
      "t": "10:02",
      "actor": "DISPATCH",
-     "text": "Dispatch SHP1017 (OPTIONS_ONLY - compare, do not book) → PROPOSE SLOT-JAI-006 [UNVERIFIED]",
+     "text": "Dispatch SHP1017 (OPTIONS_ONLY - compare, do not book) → PROPOSE SLOT-JAI-006 [NOT_APPLICABLE]",
      "tags": [
       "D4"
      ],
@@ -873,7 +881,7 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-006",
@@ -882,20 +890,20 @@
         "report_type": "OTHER",
         "shipment_id": "SHP1017",
         "claimed_eta": "12:45",
-        "dock_code": null,
+        "dock_code": "D1",
         "confirms_claim": null
        },
        "evidence": [
-        "feasible_ids: SLOT-JAI-006, SLOT-JAI-020, SLOT-JAI-034, SLOT-JAI-048",
-        "all start 13:00 end 13:50",
-        "current appointment SLOT-JAI-005 at D1 12:00-12:50 not feasible",
-        "planning_eta 12:45"
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-006\",\"SLOT-JAI-020\",\"SLOT-JAI-034\",\"SLOT-JAI-048\"]",
+        "shipment.planning_eta: 12:45",
+        "shipment.current_appointment.slot_id: SLOT-JAI-005 (12:00-12:50, D1)",
+        "slots: SLOT-JAI-006 (13:00-13:50, D1), SLOT-JAI-020 (13:00-13:50, D2), SLOT-JAI-034 (13:00-13:50, D3), SLOT-JAI-048 (13:00-13:50, D4)"
        ],
        "question": null,
-       "reason": "All four feasible slots start at 13:00; SLOT-JAI-006 on D1 matches current dock and is earliest in list."
+       "reason": "All feasible slots start at 13:00; SLOT-JAI-006 uses the same dock (D1) as the current appointment, minimizing disruption."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-006",
@@ -904,22 +912,20 @@
         "report_type": "OTHER",
         "shipment_id": "SHP1017",
         "claimed_eta": "12:45",
-        "dock_code": null,
+        "dock_code": "D1",
         "confirms_claim": null
        },
        "evidence": [
-        "feasible_ids: SLOT-JAI-006, SLOT-JAI-020, SLOT-JAI-034, SLOT-JAI-048",
-        "all start 13:00 end 13:50",
-        "current appointment SLOT-JAI-005 at D1 12:00-12:50 not feasible",
-        "planning_eta 12:45"
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-006\",\"SLOT-JAI-020\",\"SLOT-JAI-034\",\"SLOT-JAI-048\"]",
+        "shipment.planning_eta: 12:45",
+        "shipment.current_appointment.slot_id: SLOT-JAI-005 (12:00-12:50, D1)",
+        "slots: SLOT-JAI-006 (13:00-13:50, D1), SLOT-JAI-020 (13:00-13:50, D2), SLOT-JAI-034 (13:00-13:50, D3), SLOT-JAI-048 (13:00-13:50, D4)"
        ],
        "question": null,
-       "reason": "All four feasible slots start at 13:00; SLOT-JAI-006 on D1 matches current dock and is earliest in list."
+       "reason": "All feasible slots start at 13:00; SLOT-JAI-006 uses the same dock (D1) as the current appointment, minimizing disruption."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "SLOT-JAI-006",
@@ -927,7 +933,7 @@
        "SLOT-JAI-034",
        "SLOT-JAI-048"
       ],
-      "seconds": 16.7,
+      "seconds": 16.5,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -1043,8 +1049,8 @@
     "escalations": [],
     "stale_caught": 0,
     "agent_calls": 5,
-    "agent_correct": 4,
-    "guard_interventions": 2,
+    "agent_correct": 5,
+    "guard_interventions": 0,
     "minutes_to_outcome": 24,
     "turns_to_outcome": 11,
     "integrity": {
@@ -1409,7 +1415,7 @@
     {
      "t": "09:19",
      "actor": "TRIAGE",
-     "text": "Triage THR003 → CLARIFY THR003, ask DRIVER [UNVERIFIED]",
+     "text": "Triage THR003 → CLARIFY, ask DRIVER [UNVERIFIED]",
      "tags": [
       "D1"
      ],
@@ -1448,55 +1454,49 @@
        "verification": "UNVERIFIED",
        "action": "CLARIFY",
        "ask_whom": "DRIVER",
-       "selected_id": "THR003",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1013",
         "claimed_eta": null,
-        "dock_code": "D2",
+        "dock_code": null,
         "confirms_claim": null
        },
        "evidence": [
-        "THR003",
-        "DRV013",
-        "I am late by one hour.",
-        "09:19",
         "original_eta: 10:00",
-        "appointment start: 11:00"
+        "current_appointment.start: 11:00",
+        "driver text: I am late by one hour"
        ],
-       "question": "What is your new estimated arrival time (HH:MM 24-hour)?",
-       "reason": "Driver states being late by one hour but does not provide a specific new ETA; need clarification before any re-planning."
+       "question": "What is your new estimated arrival time?",
+       "reason": "Driver reports being one hour late but does not provide a specific clock-time ETA; need clarification before any re-planning."
       },
       "guarded": {
        "verification": "UNVERIFIED",
        "action": "CLARIFY",
        "ask_whom": "DRIVER",
-       "selected_id": "THR003",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1013",
         "claimed_eta": null,
-        "dock_code": "D2",
+        "dock_code": null,
         "confirms_claim": null
        },
        "evidence": [
-        "THR003",
-        "DRV013",
-        "I am late by one hour.",
-        "09:19",
         "original_eta: 10:00",
-        "appointment start: 11:00"
+        "current_appointment.start: 11:00",
+        "driver text: I am late by one hour"
        ],
-       "question": "What is your new estimated arrival time (HH:MM 24-hour)?",
-       "reason": "Driver states being late by one hour but does not provide a specific new ETA; need clarification before any re-planning."
+       "question": "What is your new estimated arrival time?",
+       "reason": "Driver reports being one hour late but does not provide a specific clock-time ETA; need clarification before any re-planning."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 7.1,
+      "seconds": 9.2,
       "expect": {
        "actions": [
         "CLARIFY"
@@ -1565,7 +1565,7 @@
     {
      "t": "09:25",
      "actor": "TRIAGE",
-     "text": "Triage THR003 reply → CLARIFY THR003, ask FACILITY [UNVERIFIED]",
+     "text": "Triage THR003 reply → PROPOSE [UNVERIFIED]",
      "tags": [
       "H"
      ],
@@ -1602,55 +1602,59 @@
       },
       "raw": {
        "verification": "UNVERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
-       "selected_id": "THR003",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1013",
         "claimed_eta": "11:00",
-        "dock_code": "D2",
+        "dock_code": null,
         "confirms_claim": null
        },
        "evidence": [
         "THR003",
+        "DRV013",
+        "Reaching gate 11:00 for sure, no hurry after that.",
         "09:25",
-        "11:00",
-        "D2",
-        "SHP1013"
+        "SHP1013",
+        "APT1013A",
+        "11:00"
        ],
-       "question": "Can you confirm dock D2 will be available at 11:00 for shipment SHP1013?",
-       "reason": "Driver claims arrival at gate at 11:00 matching the appointment, but there is no independent confirmation; facility verification needed for dock availability."
+       "question": null,
+       "reason": "Driver provided a clear clock-time ETA (11:00) for known shipment SHP1013; no independent confirmation exists yet, so verification remains UNVERIFIED. Propose re-planning based on this ETA."
       },
       "guarded": {
        "verification": "UNVERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
-       "selected_id": "THR003",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1013",
         "claimed_eta": "11:00",
-        "dock_code": "D2",
+        "dock_code": null,
         "confirms_claim": null
        },
        "evidence": [
         "THR003",
+        "DRV013",
+        "Reaching gate 11:00 for sure, no hurry after that.",
         "09:25",
-        "11:00",
-        "D2",
-        "SHP1013"
+        "SHP1013",
+        "APT1013A",
+        "11:00"
        ],
-       "question": "Can you confirm dock D2 will be available at 11:00 for shipment SHP1013?",
-       "reason": "Driver claims arrival at gate at 11:00 matching the appointment, but there is no independent confirmation; facility verification needed for dock availability."
+       "question": null,
+       "reason": "Driver provided a clear clock-time ETA (11:00) for known shipment SHP1013; no independent confirmation exists yet, so verification remains UNVERIFIED. Propose re-planning based on this ETA."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 21.6,
+      "seconds": 18.6,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -1662,10 +1666,10 @@
        ]
       },
       "checks": {
-       "action": false,
+       "action": true,
        "verification": true
       },
-      "correct": false
+      "correct": true
      },
      "board": null
     },
@@ -1684,7 +1688,7 @@
     {
      "t": "09:25",
      "actor": "DISPATCH",
-     "text": "Dispatch SHP1013 (REPLAN after clarified ETA) → PROPOSE SLOT-JAI-019 [UNVERIFIED]",
+     "text": "Dispatch SHP1013 (REPLAN after clarified ETA) → PROPOSE SLOT-JAI-019 [NOT_APPLICABLE]",
      "tags": [
       "D4"
      ],
@@ -1810,16 +1814,16 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-019",
        "state_change_allowed": false,
        "extracted": {
-        "report_type": "OTHER",
+        "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1013",
         "claimed_eta": "11:15",
-        "dock_code": null,
+        "dock_code": "D2",
         "confirms_claim": null
        },
        "evidence": [
@@ -1828,19 +1832,19 @@
         "current_appointment slot_id: SLOT-JAI-018 start: 11:00"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after clarified ETA 11:15 is SLOT-JAI-019 (12:00-13:00 at D2)."
+       "reason": "Earliest feasible slot after the clarified ETA of 11:15 is SLOT-JAI-019 starting at 12:00 on dock D2."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-019",
        "state_change_allowed": false,
        "extracted": {
-        "report_type": "OTHER",
+        "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1013",
         "claimed_eta": "11:15",
-        "dock_code": null,
+        "dock_code": "D2",
         "confirms_claim": null
        },
        "evidence": [
@@ -1849,12 +1853,10 @@
         "current_appointment slot_id: SLOT-JAI-018 start: 11:00"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after clarified ETA 11:15 is SLOT-JAI-019 (12:00-13:00 at D2)."
+       "reason": "Earliest feasible slot after the clarified ETA of 11:15 is SLOT-JAI-019 starting at 12:00 on dock D2."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "SLOT-JAI-019",
@@ -1862,7 +1864,7 @@
        "SLOT-JAI-020",
        "SLOT-JAI-034"
       ],
-      "seconds": 27.1,
+      "seconds": 10.1,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -2609,7 +2611,7 @@
     {
      "t": "09:31",
      "actor": "TRIAGE",
-     "text": "Triage THR010 → CLARIFY THR010, ask DRIVER [UNVERIFIED]",
+     "text": "Triage THR010 → CLARIFY, ask DRIVER [UNVERIFIED]",
      "tags": [
       "D2"
      ],
@@ -2668,7 +2670,7 @@
        "verification": "UNVERIFIED",
        "action": "CLARIFY",
        "ask_whom": "DRIVER",
-       "selected_id": "THR010",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ETA_UPDATE",
@@ -2682,18 +2684,22 @@
         "DRV004",
         "09:31",
         "I will be late by 45 minutes.",
-        "SHP1004 APT1004 09:00 D2",
-        "SHP1020 APT1020 18:00 D2",
-        "CHK1004 09:25 (in yard)"
+        "SHP1004",
+        "APT1004",
+        "09:00",
+        "CHK1004 09:25 (in yard)",
+        "SHP1020",
+        "APT1020",
+        "18:00"
        ],
-       "question": "Which shipment are you referring to, SHP1004 (appointment 09:00) or SHP1020 (appointment 18:00)?",
-       "reason": "Driver's late claim lacks shipment reference; two candidate shipments exist with different appointment times."
+       "question": "Which shipment are you referring to, and what is your new estimated arrival time at the dock?",
+       "reason": "Driver claims a 45-minute delay but does not specify which shipment (SHP1004 with 09:00 appointment or SHP1020 with 18:00 appointment). The gate check-in shows the driver is already in the yard for SHP1004. Clarification needed to update the correct appointment."
       },
       "guarded": {
        "verification": "UNVERIFIED",
        "action": "CLARIFY",
        "ask_whom": "DRIVER",
-       "selected_id": "THR010",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ETA_UPDATE",
@@ -2707,18 +2713,22 @@
         "DRV004",
         "09:31",
         "I will be late by 45 minutes.",
-        "SHP1004 APT1004 09:00 D2",
-        "SHP1020 APT1020 18:00 D2",
-        "CHK1004 09:25 (in yard)"
+        "SHP1004",
+        "APT1004",
+        "09:00",
+        "CHK1004 09:25 (in yard)",
+        "SHP1020",
+        "APT1020",
+        "18:00"
        ],
-       "question": "Which shipment are you referring to, SHP1004 (appointment 09:00) or SHP1020 (appointment 18:00)?",
-       "reason": "Driver's late claim lacks shipment reference; two candidate shipments exist with different appointment times."
+       "question": "Which shipment are you referring to, and what is your new estimated arrival time at the dock?",
+       "reason": "Driver claims a 45-minute delay but does not specify which shipment (SHP1004 with 09:00 appointment or SHP1020 with 18:00 appointment). The gate check-in shows the driver is already in the yard for SHP1004. Clarification needed to update the correct appointment."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 16.6,
+      "seconds": 17.2,
       "expect": {
        "actions": [
         "CLARIFY"
@@ -2778,7 +2788,7 @@
     {
      "t": "09:35",
      "actor": "DISPATCH",
-     "text": "Dispatch SHP1020 (REPLAN after driver ETA) → PROPOSE SLOT-JAI-026 [UNVERIFIED]",
+     "text": "Dispatch SHP1020 (REPLAN after driver ETA) → PROPOSE SLOT-JAI-012 [NOT_APPLICABLE]",
      "tags": [
       "D4"
      ],
@@ -2902,61 +2912,53 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
-       "selected_id": "SLOT-JAI-026",
+       "selected_id": "SLOT-JAI-012",
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1020",
         "claimed_eta": "19:00",
-        "dock_code": "D2",
+        "dock_code": null,
         "confirms_claim": null
        },
        "evidence": [
-        "SHP1020",
-        "SLOT-JAI-025",
-        "18:00",
-        "19:00",
-        "SLOT-JAI-026",
-        "D2",
-        "19:00-20:00",
-        "feasible_ids: [\"SLOT-JAI-012\",\"SLOT-JAI-026\",\"SLOT-JAI-040\",\"SLOT-JAI-054\"]"
+        "shipment_id: SHP1020",
+        "current_appointment.slot_id: SLOT-JAI-025",
+        "current_appointment.start: 18:00",
+        "planning_eta: 19:00",
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-012\",\"SLOT-JAI-026\",\"SLOT-JAI-040\",\"SLOT-JAI-054\"]"
        ],
        "question": null,
-       "reason": "Current slot SLOT-JAI-025 (18:00-19:00) starts before updated ETA 19:00. Feasible slots all start at 19:00; SLOT-JAI-026 on same dock D2 minimizes disruption."
+       "reason": "Selected earliest feasible slot (SLOT-JAI-012) starting at 19:00 matching driver's planning ETA; all feasible slots start at same time, no concrete reason to prefer another."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
-       "selected_id": "SLOT-JAI-026",
+       "selected_id": "SLOT-JAI-012",
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1020",
         "claimed_eta": "19:00",
-        "dock_code": "D2",
+        "dock_code": null,
         "confirms_claim": null
        },
        "evidence": [
-        "SHP1020",
-        "SLOT-JAI-025",
-        "18:00",
-        "19:00",
-        "SLOT-JAI-026",
-        "D2",
-        "19:00-20:00",
-        "feasible_ids: [\"SLOT-JAI-012\",\"SLOT-JAI-026\",\"SLOT-JAI-040\",\"SLOT-JAI-054\"]"
+        "shipment_id: SHP1020",
+        "current_appointment.slot_id: SLOT-JAI-025",
+        "current_appointment.start: 18:00",
+        "planning_eta: 19:00",
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-012\",\"SLOT-JAI-026\",\"SLOT-JAI-040\",\"SLOT-JAI-054\"]"
        ],
        "question": null,
-       "reason": "Current slot SLOT-JAI-025 (18:00-19:00) starts before updated ETA 19:00. Feasible slots all start at 19:00; SLOT-JAI-026 on same dock D2 minimizes disruption."
+       "reason": "Selected earliest feasible slot (SLOT-JAI-012) starting at 19:00 matching driver's planning ETA; all feasible slots start at same time, no concrete reason to prefer another."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "SLOT-JAI-012",
@@ -2964,7 +2966,7 @@
        "SLOT-JAI-040",
        "SLOT-JAI-054"
       ],
-      "seconds": 26.6,
+      "seconds": 11.6,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -2989,7 +2991,7 @@
     {
      "t": "09:35",
      "actor": "ENGINE",
-     "text": "HOLD SLOT-JAI-026 (D2 19:00) for 10 min: True",
+     "text": "HOLD SLOT-JAI-012 (D1 19:00) for 10 min: True",
      "tags": [
       "D6"
      ],
@@ -3041,8 +3043,8 @@
        ""
       ],
       "SLOT-JAI-012": [
-       "FREE",
-       ""
+       "HELD",
+       "SHP1020"
       ],
       "SLOT-JAI-013": [
        "FREE",
@@ -3097,8 +3099,8 @@
        "SHP1020"
       ],
       "SLOT-JAI-026": [
-       "HELD",
-       "SHP1020"
+       "FREE",
+       ""
       ],
       "SLOT-JAI-027": [
        "FREE",
@@ -3317,7 +3319,7 @@
     {
      "t": "09:35",
      "actor": "AGENT→DRIVER",
-     "text": "I can hold D2 at 19:00 for you for 10 minutes. Reply YES to request it.",
+     "text": "I can hold D1 at 19:00 for you for 10 minutes. Reply YES to request it.",
      "tags": [],
      "data": null,
      "agent": null,
@@ -3387,8 +3389,8 @@
        ""
       ],
       "SLOT-JAI-012": [
-       "FREE",
-       ""
+       "REQUESTED",
+       "SHP1020"
       ],
       "SLOT-JAI-013": [
        "FREE",
@@ -3443,8 +3445,8 @@
        "SHP1020"
       ],
       "SLOT-JAI-026": [
-       "REQUESTED",
-       "SHP1020"
+       "FREE",
+       ""
       ],
       "SLOT-JAI-027": [
        "FREE",
@@ -3724,8 +3726,8 @@
        ""
       ],
       "SLOT-JAI-012": [
-       "FREE",
-       ""
+       "BOOKED",
+       "SHP1020"
       ],
       "SLOT-JAI-013": [
        "FREE",
@@ -3780,8 +3782,8 @@
        ""
       ],
       "SLOT-JAI-026": [
-       "BOOKED",
-       "SHP1020"
+       "FREE",
+       ""
       ],
       "SLOT-JAI-027": [
        "FREE",
@@ -4000,7 +4002,7 @@
     {
      "t": "09:43",
      "actor": "AGENT→DRIVER",
-     "text": "Confirmed: D2 19:00 today, ref WH-JAI-9120.",
+     "text": "Confirmed: D1 19:00 today, ref WH-JAI-9120.",
      "tags": [],
      "data": null,
      "agent": null,
@@ -4073,7 +4075,7 @@
     ],
     "agent_calls": 4,
     "agent_correct": 4,
-    "guard_interventions": 4,
+    "guard_interventions": 0,
     "minutes_to_outcome": 406,
     "turns_to_outcome": 4,
     "integrity": {
@@ -4415,7 +4417,7 @@
     {
      "t": "09:38",
      "actor": "ASSESSMENT",
-     "text": "Assessment SHP1010 → PROPOSE DOCK-JAI-D5 [UNVERIFIED]",
+     "text": "Assessment SHP1010 → PROPOSE DOCK-JAI-D5 [NOT_APPLICABLE]",
      "tags": [
       "D4"
      ],
@@ -4493,7 +4495,7 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "DOCK-JAI-D5",
@@ -4506,19 +4508,24 @@
         "confirms_claim": null
        },
        "evidence": [
-        "shipment_id:SHP1010",
-        "weight_kg:16000",
-        "required_dock_type:REEFER",
-        "temperature_control_required:true",
-        "eta:10:55",
-        "feasible_ids:DOCK-JAI-D5",
-        "DOCK-JAI-D5:dock_type:REEFER,supports_refrigerated:true,dock_max_weight_kg:22000,vehicle_capacity_kg:18000,dock_available:true,first_feasible_start:11:00"
+        "shipment_id: SHP1010",
+        "weight_kg: 16000",
+        "required_dock_type: REEFER",
+        "temperature_control_required: true",
+        "eta: 10:55",
+        "feasible_ids: [DOCK-JAI-D5]",
+        "DOCK-JAI-D5 dock_type: REEFER",
+        "DOCK-JAI-D5 supports_refrigerated: true",
+        "DOCK-JAI-D5 dock_max_weight_kg: 22000",
+        "DOCK-JAI-D5 vehicle_capacity_kg: 18000",
+        "DOCK-JAI-D5 dock_available: true",
+        "DOCK-JAI-D5 first_feasible_start: 11:00"
        ],
        "question": null,
-       "reason": "Only DOCK-JAI-D5 meets all constraints: REEFER type, refrigeration support, weight capacity (22000kg dock, 18000kg vehicle >= 16000kg load), and availability. First feasible start 11:00 is 5 minutes after load ETA 10:55."
+       "reason": "Only DOCK-JAI-D5 meets all deterministic feasibility checks: REEFER dock type, refrigeration support, sufficient weight capacity (22000 kg > 16000 kg), vehicle capacity (18000 kg > 16000 kg), and availability starting at 11:00, which is 5 minutes after the load ETA of 10:55."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "DOCK-JAI-D5",
@@ -4531,26 +4538,29 @@
         "confirms_claim": null
        },
        "evidence": [
-        "shipment_id:SHP1010",
-        "weight_kg:16000",
-        "required_dock_type:REEFER",
-        "temperature_control_required:true",
-        "eta:10:55",
-        "feasible_ids:DOCK-JAI-D5",
-        "DOCK-JAI-D5:dock_type:REEFER,supports_refrigerated:true,dock_max_weight_kg:22000,vehicle_capacity_kg:18000,dock_available:true,first_feasible_start:11:00"
+        "shipment_id: SHP1010",
+        "weight_kg: 16000",
+        "required_dock_type: REEFER",
+        "temperature_control_required: true",
+        "eta: 10:55",
+        "feasible_ids: [DOCK-JAI-D5]",
+        "DOCK-JAI-D5 dock_type: REEFER",
+        "DOCK-JAI-D5 supports_refrigerated: true",
+        "DOCK-JAI-D5 dock_max_weight_kg: 22000",
+        "DOCK-JAI-D5 vehicle_capacity_kg: 18000",
+        "DOCK-JAI-D5 dock_available: true",
+        "DOCK-JAI-D5 first_feasible_start: 11:00"
        ],
        "question": null,
-       "reason": "Only DOCK-JAI-D5 meets all constraints: REEFER type, refrigeration support, weight capacity (22000kg dock, 18000kg vehicle >= 16000kg load), and availability. First feasible start 11:00 is 5 minutes after load ETA 10:55."
+       "reason": "Only DOCK-JAI-D5 meets all deterministic feasibility checks: REEFER dock type, refrigeration support, sufficient weight capacity (22000 kg > 16000 kg), vehicle capacity (18000 kg > 16000 kg), and availability starting at 11:00, which is 5 minutes after the load ETA of 10:55."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "DOCK-JAI-D5"
       ],
-      "seconds": 13.0,
+      "seconds": 9.4,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -4606,7 +4616,7 @@
     {
      "t": "09:39",
      "actor": "ASSESSMENT",
-     "text": "Assessment SHP1016 → PROPOSE DOCK-JAI-D6 [UNVERIFIED]",
+     "text": "Assessment SHP1016 → PROPOSE DOCK-JAI-D6 [NOT_APPLICABLE]",
      "tags": [
       "D4"
      ],
@@ -4684,7 +4694,7 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "DOCK-JAI-D6",
@@ -4692,7 +4702,7 @@
        "extracted": {
         "report_type": "OTHER",
         "shipment_id": "SHP1016",
-        "claimed_eta": "12:00",
+        "claimed_eta": null,
         "dock_code": null,
         "confirms_claim": null
        },
@@ -4700,20 +4710,20 @@
         "shipment_id: SHP1016",
         "weight_kg: 31000",
         "required_dock_type: HEAVY",
+        "temperature_control_required: false",
         "eta: 12:00",
         "feasible_ids: [DOCK-JAI-D6]",
-        "selected_dock: DOCK-JAI-D6",
-        "dock_type: HEAVY",
-        "dock_max_weight_kg: 35000",
-        "vehicle_capacity_kg: 32000",
-        "dock_available: true",
-        "first_feasible_start: 12:30"
+        "DOCK-JAI-D6 dock_type: HEAVY",
+        "DOCK-JAI-D6 dock_max_weight_kg: 35000",
+        "DOCK-JAI-D6 vehicle_capacity_kg: 32000",
+        "DOCK-JAI-D6 dock_available: true",
+        "DOCK-JAI-D6 first_feasible_start: 12:30"
        ],
        "question": null,
-       "reason": "Only DOCK-JAI-D6 meets all requirements: HEAVY dock type, weight capacity 35000 kg >= 31000 kg, vehicle capacity 32000 kg >= 31000 kg, and is available starting 12:30 (30 minutes after ETA 12:00)."
+       "reason": "Only DOCK-JAI-D6 passes all deterministic checks: matches HEAVY dock type, supports 31000 kg load (dock max 35000 kg, vehicle capacity 32000 kg), no refrigeration needed, and is available with first feasible start at 12:30."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "DOCK-JAI-D6",
@@ -4721,7 +4731,7 @@
        "extracted": {
         "report_type": "OTHER",
         "shipment_id": "SHP1016",
-        "claimed_eta": "12:00",
+        "claimed_eta": null,
         "dock_code": null,
         "confirms_claim": null
        },
@@ -4729,27 +4739,25 @@
         "shipment_id: SHP1016",
         "weight_kg: 31000",
         "required_dock_type: HEAVY",
+        "temperature_control_required: false",
         "eta: 12:00",
         "feasible_ids: [DOCK-JAI-D6]",
-        "selected_dock: DOCK-JAI-D6",
-        "dock_type: HEAVY",
-        "dock_max_weight_kg: 35000",
-        "vehicle_capacity_kg: 32000",
-        "dock_available: true",
-        "first_feasible_start: 12:30"
+        "DOCK-JAI-D6 dock_type: HEAVY",
+        "DOCK-JAI-D6 dock_max_weight_kg: 35000",
+        "DOCK-JAI-D6 vehicle_capacity_kg: 32000",
+        "DOCK-JAI-D6 dock_available: true",
+        "DOCK-JAI-D6 first_feasible_start: 12:30"
        ],
        "question": null,
-       "reason": "Only DOCK-JAI-D6 meets all requirements: HEAVY dock type, weight capacity 35000 kg >= 31000 kg, vehicle capacity 32000 kg >= 31000 kg, and is available starting 12:30 (30 minutes after ETA 12:00)."
+       "reason": "Only DOCK-JAI-D6 passes all deterministic checks: matches HEAVY dock type, supports 31000 kg load (dock max 35000 kg, vehicle capacity 32000 kg), no refrigeration needed, and is available with first feasible start at 12:30."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "DOCK-JAI-D6"
       ],
-      "seconds": 24.4,
+      "seconds": 7.4,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -4803,7 +4811,7 @@
     {
      "t": "09:39",
      "actor": "DISPATCH",
-     "text": "Dispatch SHP1016 (REPLAN heavy load) → PROPOSE SLOT-JAI-074 [UNVERIFIED]",
+     "text": "Dispatch SHP1016 (REPLAN heavy load) → PROPOSE SLOT-JAI-074 [NOT_APPLICABLE]",
      "tags": [
       "D4"
      ],
@@ -4938,7 +4946,7 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-074",
@@ -4952,17 +4960,14 @@
        },
        "evidence": [
         "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-074\",\"SLOT-JAI-075\",\"SLOT-JAI-076\",\"SLOT-JAI-077\"]",
-        "shipment.planning_eta: 12:00",
-        "shipment.required_dock_type: HEAVY",
-        "shipment.load_weight_kg: 31000",
-        "shipment.expected_unload_min: 90",
-        "SLOT-JAI-074 start: 12:30, end: 14:00, dock: D6"
+        "slot SLOT-JAI-074: dock D6, start 12:30, end 14:00, feasible true",
+        "shipment planning_eta 12:00, load_weight_kg 31000, required_dock_type HEAVY, expected_unload_min 90"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after planning ETA 12:00 that meets HEAVY dock requirement and 90-minute unload window."
+       "reason": "Earliest feasible slot after planning ETA (12:00) that satisfies heavy dock requirement and 90-minute unload duration."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-074",
@@ -4976,19 +4981,14 @@
        },
        "evidence": [
         "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-074\",\"SLOT-JAI-075\",\"SLOT-JAI-076\",\"SLOT-JAI-077\"]",
-        "shipment.planning_eta: 12:00",
-        "shipment.required_dock_type: HEAVY",
-        "shipment.load_weight_kg: 31000",
-        "shipment.expected_unload_min: 90",
-        "SLOT-JAI-074 start: 12:30, end: 14:00, dock: D6"
+        "slot SLOT-JAI-074: dock D6, start 12:30, end 14:00, feasible true",
+        "shipment planning_eta 12:00, load_weight_kg 31000, required_dock_type HEAVY, expected_unload_min 90"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after planning ETA 12:00 that meets HEAVY dock requirement and 90-minute unload window."
+       "reason": "Earliest feasible slot after planning ETA (12:00) that satisfies heavy dock requirement and 90-minute unload duration."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "SLOT-JAI-074",
@@ -4996,7 +4996,7 @@
        "SLOT-JAI-076",
        "SLOT-JAI-077"
       ],
-      "seconds": 14.6,
+      "seconds": 8.1,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -5099,7 +5099,7 @@
     {
      "t": "16:24",
      "actor": "ASSESSMENT",
-     "text": "Assessment SHP1015 → NO_FEASIBLE_OPTION [UNVERIFIED]",
+     "text": "Assessment SHP1015 → NO_FEASIBLE_OPTION [NOT_APPLICABLE]",
      "tags": [
       "D4"
      ],
@@ -5175,7 +5175,7 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "NO_FEASIBLE_OPTION",
        "ask_whom": "NONE",
        "selected_id": null,
@@ -5193,14 +5193,14 @@
         "required_dock_type: REEFER",
         "temperature_control_required: true",
         "eta: 18:30",
-        "deterministic_feasibility.feasible_ids: []",
-        "all docks dock_available: false"
+        "feasible_ids: []",
+        "DOCK-JAI-D5 dock_type: REEFER supports_refrigerated: true dock_available: false"
        ],
        "question": null,
-       "reason": "No feasible dock options passed capacity, weight, dock-type, refrigeration, and availability checks. The only REEFER dock (DOCK-JAI-D5) is unavailable, and all other docks lack refrigeration support."
+       "reason": "No feasible dock options passed deterministic checks; all docks are unavailable (dock_available: false), including the only REEFER dock (DOCK-JAI-D5) that supports refrigeration."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "NO_FEASIBLE_OPTION",
        "ask_whom": "NONE",
        "selected_id": null,
@@ -5218,19 +5218,17 @@
         "required_dock_type: REEFER",
         "temperature_control_required: true",
         "eta: 18:30",
-        "deterministic_feasibility.feasible_ids: []",
-        "all docks dock_available: false"
+        "feasible_ids: []",
+        "DOCK-JAI-D5 dock_type: REEFER supports_refrigerated: true dock_available: false"
        ],
        "question": null,
-       "reason": "No feasible dock options passed capacity, weight, dock-type, refrigeration, and availability checks. The only REEFER dock (DOCK-JAI-D5) is unavailable, and all other docks lack refrigeration support."
+       "reason": "No feasible dock options passed deterministic checks; all docks are unavailable (dock_available: false), including the only REEFER dock (DOCK-JAI-D5) that supports refrigeration."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [],
-      "seconds": 13.6,
+      "seconds": 9.3,
       "expect": {
        "actions": [
         "ESCALATE",
@@ -5334,9 +5332,9 @@
       "SHP1017"
      ],
      "results": {
-      "SHP1017": "WON",
-      "SHP1012": "REJECTED (SLOT-JAI-020 taken (hold_held SHP1017))",
-      "SHP1006": "REJECTED (SLOT-JAI-020 taken (hold_held SHP1017))"
+      "SHP1012": "WON",
+      "SHP1006": "REJECTED (SLOT-JAI-020 taken (hold_held SHP1012))",
+      "SHP1017": "REJECTED (SLOT-JAI-020 taken (hold_held SHP1012))"
      },
      "winners": 1,
      "live_holds_after": 1
@@ -5363,7 +5361,7 @@
     },
     "agent_calls": 3,
     "agent_correct": 3,
-    "guard_interventions": 2,
+    "guard_interventions": 0,
     "minutes_to_outcome": 0,
     "turns_to_outcome": 4,
     "integrity": {
@@ -6127,7 +6125,7 @@
     {
      "t": "09:45",
      "actor": "DISPATCH",
-     "text": "Dispatch SHP1014 (REPLAN under contention) → PROPOSE SLOT-JAI-019 [UNVERIFIED]",
+     "text": "Dispatch SHP1014 (REPLAN under contention) → PROPOSE SLOT-JAI-019 [NOT_APPLICABLE]",
      "tags": [
       "D7"
      ],
@@ -6258,7 +6256,7 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-019",
@@ -6271,15 +6269,18 @@
         "confirms_claim": null
        },
        "evidence": [
-        "feasible_ids: SLOT-JAI-019, SLOT-JAI-020, SLOT-JAI-048, SLOT-JAI-021",
-        "selected SLOT-JAI-019 start 12:00 end 13:15 dock D2",
-        "shipment planning_eta 11:25 load_weight_kg 21000 required_dock_type STANDARD expected_unload_min 75"
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-019\",\"SLOT-JAI-020\",\"SLOT-JAI-048\",\"SLOT-JAI-021\"]",
+        "shipment.planning_eta: 11:25",
+        "shipment.expected_unload_min: 75",
+        "shipment.required_dock_type: STANDARD",
+        "shipment.load_weight_kg: 21000",
+        "slot SLOT-JAI-019: dock D2, start 12:00, end 13:15, feasible true"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after planning ETA 11:25, matches 75-min unload duration, dock D2 supports STANDARD type and weight 21000 kg."
+       "reason": "Earliest feasible slot (12:00) after planning ETA (11:25), matches 75-minute unload window, STANDARD dock type, weight within dock limits."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-019",
@@ -6292,17 +6293,18 @@
         "confirms_claim": null
        },
        "evidence": [
-        "feasible_ids: SLOT-JAI-019, SLOT-JAI-020, SLOT-JAI-048, SLOT-JAI-021",
-        "selected SLOT-JAI-019 start 12:00 end 13:15 dock D2",
-        "shipment planning_eta 11:25 load_weight_kg 21000 required_dock_type STANDARD expected_unload_min 75"
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-019\",\"SLOT-JAI-020\",\"SLOT-JAI-048\",\"SLOT-JAI-021\"]",
+        "shipment.planning_eta: 11:25",
+        "shipment.expected_unload_min: 75",
+        "shipment.required_dock_type: STANDARD",
+        "shipment.load_weight_kg: 21000",
+        "slot SLOT-JAI-019: dock D2, start 12:00, end 13:15, feasible true"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after planning ETA 11:25, matches 75-min unload duration, dock D2 supports STANDARD type and weight 21000 kg."
+       "reason": "Earliest feasible slot (12:00) after planning ETA (11:25), matches 75-minute unload window, STANDARD dock type, weight within dock limits."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "SLOT-JAI-019",
@@ -6310,7 +6312,7 @@
        "SLOT-JAI-048",
        "SLOT-JAI-021"
       ],
-      "seconds": 21.7,
+      "seconds": 8.8,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -6661,7 +6663,7 @@
     {
      "t": "09:45",
      "actor": "DISPATCH",
-     "text": "Dispatch SHP1006 (REPLAN under contention) → PROPOSE SLOT-JAI-006 [UNVERIFIED]",
+     "text": "Dispatch SHP1006 (REPLAN under contention) → PROPOSE SLOT-JAI-006 [NOT_APPLICABLE]",
      "tags": [
       "D7"
      ],
@@ -6784,7 +6786,7 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-006",
@@ -6797,15 +6799,15 @@
         "confirms_claim": null
        },
        "evidence": [
-        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-006\",\"SLOT-JAI-034\",\"SLOT-JAI-048\",\"SLOT-JAI-007\"]",
-        "shipment.planning_eta: 11:20",
-        "slot SLOT-JAI-006: dock D1, start 13:00, end 13:45"
+        "feasible_ids: SLOT-JAI-006, SLOT-JAI-034, SLOT-JAI-048, SLOT-JAI-007",
+        "planning_eta: 11:20",
+        "now: 09:45"
        ],
        "question": null,
-       "reason": "Earliest feasible slot (13:00) that meets all constraints; no contention reason to prefer later slot."
+       "reason": "Earliest feasible slot (13:00) after planning ETA 11:20; no scenario reason to prefer later or different dock."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-006",
@@ -6818,17 +6820,15 @@
         "confirms_claim": null
        },
        "evidence": [
-        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-006\",\"SLOT-JAI-034\",\"SLOT-JAI-048\",\"SLOT-JAI-007\"]",
-        "shipment.planning_eta: 11:20",
-        "slot SLOT-JAI-006: dock D1, start 13:00, end 13:45"
+        "feasible_ids: SLOT-JAI-006, SLOT-JAI-034, SLOT-JAI-048, SLOT-JAI-007",
+        "planning_eta: 11:20",
+        "now: 09:45"
        ],
        "question": null,
-       "reason": "Earliest feasible slot (13:00) that meets all constraints; no contention reason to prefer later slot."
+       "reason": "Earliest feasible slot (13:00) after planning ETA 11:20; no scenario reason to prefer later or different dock."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "SLOT-JAI-006",
@@ -6836,7 +6836,7 @@
        "SLOT-JAI-048",
        "SLOT-JAI-007"
       ],
-      "seconds": 14.2,
+      "seconds": 6.9,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -7187,7 +7187,7 @@
     {
      "t": "09:45",
      "actor": "DISPATCH",
-     "text": "Dispatch SHP1012 (REPLAN under contention) → NO_FEASIBLE_OPTION [UNVERIFIED]",
+     "text": "Dispatch SHP1012 (REPLAN under contention) → NO_FEASIBLE_OPTION [NOT_APPLICABLE]",
      "tags": [
       "D7"
      ],
@@ -7258,7 +7258,7 @@
        }
       },
       "raw": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "NO_FEASIBLE_OPTION",
        "ask_whom": "NONE",
        "selected_id": null,
@@ -7273,17 +7273,33 @@
        "evidence": [
         "SHP1012",
         "ORD-260804-012",
+        "DRV012",
+        "8000",
+        "STANDARD",
+        "false",
+        "NORMAL",
+        "45",
+        "IN_TRANSIT",
         "11:10",
         "SLOT-JAI-004",
+        "D1",
+        "11:00",
+        "11:45",
         "SLOT-JAI-018",
+        "D2",
+        "11:00",
+        "11:45",
         "SLOT-JAI-032",
+        "D3",
+        "11:00",
+        "11:45",
         "feasible_ids: []"
        ],
        "question": null,
-       "reason": "No feasible slots available for shipment SHP1012 at planning ETA 11:10; all slots start before ETA or are blocked/taken."
+       "reason": "No feasible slots available; all slots start before ETA 11:10 or are blocked/taken."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "NO_FEASIBLE_OPTION",
        "ask_whom": "NONE",
        "selected_id": null,
@@ -7298,20 +7314,36 @@
        "evidence": [
         "SHP1012",
         "ORD-260804-012",
+        "DRV012",
+        "8000",
+        "STANDARD",
+        "false",
+        "NORMAL",
+        "45",
+        "IN_TRANSIT",
         "11:10",
         "SLOT-JAI-004",
+        "D1",
+        "11:00",
+        "11:45",
         "SLOT-JAI-018",
+        "D2",
+        "11:00",
+        "11:45",
         "SLOT-JAI-032",
+        "D3",
+        "11:00",
+        "11:45",
         "feasible_ids: []"
        ],
        "question": null,
-       "reason": "No feasible slots available for shipment SHP1012 at planning ETA 11:10; all slots start before ETA or are blocked/taken."
+       "reason": "No feasible slots available; all slots start before ETA 11:10 or are blocked/taken."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": [],
-      "seconds": 15.6,
+      "seconds": 10.4,
       "expect": {
        "actions": [
         "ESCALATE",
@@ -7422,9 +7454,9 @@
        "SHP1017"
       ],
       "results": {
-       "SHP1017": "WON",
-       "SHP1012": "REJECTED (SLOT-JAI-020 taken (hold_held SHP1017))",
-       "SHP1006": "REJECTED (SLOT-JAI-020 taken (hold_held SHP1017))"
+       "SHP1012": "WON",
+       "SHP1006": "REJECTED (SLOT-JAI-020 taken (hold_held SHP1012))",
+       "SHP1017": "REJECTED (SLOT-JAI-020 taken (hold_held SHP1012))"
       },
       "winners": 1,
       "live_holds_after": 1
@@ -7492,8 +7524,8 @@
     "stale_caught": 1,
     "coordinator_action": "approved held option",
     "agent_calls": 5,
-    "agent_correct": 3,
-    "guard_interventions": 4,
+    "agent_correct": 5,
+    "guard_interventions": 1,
     "minutes_to_outcome": 43,
     "turns_to_outcome": 10,
     "integrity": {
@@ -7844,7 +7876,7 @@
     {
      "t": "09:21",
      "actor": "TRIAGE",
-     "text": "Triage OM003 (facility source) → CLARIFY OM003, ask FACILITY [VERIFIED]",
+     "text": "Triage OM003 (facility source) → PROPOSE OM003 [VERIFIED]",
      "tags": [
       "H"
      ],
@@ -7892,8 +7924,8 @@
       },
       "raw": {
        "verification": "VERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
        "selected_id": "OM003",
        "state_change_allowed": false,
        "extracted": {
@@ -7901,28 +7933,24 @@
         "shipment_id": "SHP1005",
         "claimed_eta": null,
         "dock_code": "D3",
-        "confirms_claim": null
+        "confirms_claim": true
        },
        "evidence": [
         "OM003",
         "DEVT001",
+        "CHK1005 09:05",
+        "SHP1005",
         "D3",
         "09:15",
-        "13:00",
-        "SHP1005",
-        "CHK1005",
-        "09:05",
-        "APT1005",
-        "SLOT-JAI-030",
-        "09:00"
+        "13:00"
        ],
-       "question": "Is an alternative dock available for SHP1005 while D3 is under repair?",
-       "reason": "Facility reports SHP1005 at yard but D3 unavailable due to leveller breakdown (DEVT001). Gate check-in CHK1005 confirms arrival. Need to clarify alternative dock assignment."
+       "question": null,
+       "reason": "Facility message OM003 confirms SHP1005 is at the yard and cannot use D3 due to leveller breakdown; dock event DEVT001 independently logs D3 breakdown 09:15-13:00; gate check-in CHK1005 at 09:05 verifies truck arrival. This verified dock outage affects the confirmed appointment at D3 starting 09:00, so dispatch should re-plan (PROPOSE)."
       },
       "guarded": {
        "verification": "VERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
        "selected_id": "OM003",
        "state_change_allowed": false,
        "extracted": {
@@ -7930,29 +7958,25 @@
         "shipment_id": "SHP1005",
         "claimed_eta": null,
         "dock_code": "D3",
-        "confirms_claim": null
+        "confirms_claim": true
        },
        "evidence": [
         "OM003",
         "DEVT001",
+        "CHK1005 09:05",
+        "SHP1005",
         "D3",
         "09:15",
-        "13:00",
-        "SHP1005",
-        "CHK1005",
-        "09:05",
-        "APT1005",
-        "SLOT-JAI-030",
-        "09:00"
+        "13:00"
        ],
-       "question": "Is an alternative dock available for SHP1005 while D3 is under repair?",
-       "reason": "Facility reports SHP1005 at yard but D3 unavailable due to leveller breakdown (DEVT001). Gate check-in CHK1005 confirms arrival. Need to clarify alternative dock assignment."
+       "question": null,
+       "reason": "Facility message OM003 confirms SHP1005 is at the yard and cannot use D3 due to leveller breakdown; dock event DEVT001 independently logs D3 breakdown 09:15-13:00; gate check-in CHK1005 at 09:05 verifies truck arrival. This verified dock outage affects the confirmed appointment at D3 starting 09:00, so dispatch should re-plan (PROPOSE)."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 41.0,
+      "seconds": 14.5,
       "expect": {
        "actions": [
         "ESCALATE",
@@ -7965,10 +7989,10 @@
        ]
       },
       "checks": {
-       "action": false,
+       "action": true,
        "verification": true
       },
-      "correct": false
+      "correct": true
      },
      "board": null
     },
@@ -8679,7 +8703,7 @@
     {
      "t": "09:34",
      "actor": "TRIAGE",
-     "text": "Triage THR001 → CLARIFY, ask FACILITY [UNVERIFIED]",
+     "text": "Triage THR001 → PROPOSE [UNVERIFIED]",
      "tags": [
       "H"
      ],
@@ -8715,65 +8739,71 @@
       },
       "raw": {
        "verification": "UNVERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
-       "selected_id": "wa-9001",
-       "state_change_allowed": false,
-       "extracted": {
-        "report_type": "ETA_UPDATE",
-        "shipment_id": "SHP1006",
-        "claimed_eta": "11:20",
-        "dock_code": "D4",
-        "confirms_claim": null
-       },
-       "evidence": [
-        "THR001",
-        "DRV006",
-        "Traffic after Shahpura. Reaching around 11:20. Any slot after 12?",
-        "wa-9001",
-        "SHP1006",
-        "APT1006",
-        "SLOT-JAI-045",
-        "D4",
-        "10:00"
-       ],
-       "question": "Is there a dock slot available after 12:00 for shipment SHP1006 at dock D4?",
-       "reason": "Driver claims delayed ETA 11:20 and requests a slot after 12:00; need facility confirmation of dock availability."
-      },
-      "guarded": {
-       "verification": "UNVERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
        "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1006",
         "claimed_eta": "11:20",
-        "dock_code": "D4",
+        "dock_code": null,
         "confirms_claim": null
        },
        "evidence": [
         "THR001",
         "DRV006",
-        "Traffic after Shahpura. Reaching around 11:20. Any slot after 12?",
         "wa-9001",
         "SHP1006",
+        "ORD-260804-006",
+        "DRV006",
         "APT1006",
         "SLOT-JAI-045",
         "D4",
-        "10:00"
+        "10:00",
+        "11:20",
+        "12:00"
        ],
-       "question": "Is there a dock slot available after 12:00 for shipment SHP1006 at dock D4?",
-       "reason": "Driver claims delayed ETA 11:20 and requests a slot after 12:00; need facility confirmation of dock availability."
+       "question": null,
+       "reason": "Driver reports traffic delay with new ETA 11:20 and requests a slot after 12:00. Shipment SHP1006 is known with current appointment at 10:00. Clear clock-time ETA provided, so propose rescheduling."
+      },
+      "guarded": {
+       "verification": "UNVERIFIED",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
+       "selected_id": null,
+       "state_change_allowed": false,
+       "extracted": {
+        "report_type": "ETA_UPDATE",
+        "shipment_id": "SHP1006",
+        "claimed_eta": "11:20",
+        "dock_code": null,
+        "confirms_claim": null
+       },
+       "evidence": [
+        "THR001",
+        "DRV006",
+        "wa-9001",
+        "SHP1006",
+        "ORD-260804-006",
+        "DRV006",
+        "APT1006",
+        "SLOT-JAI-045",
+        "D4",
+        "10:00",
+        "11:20",
+        "12:00"
+       ],
+       "question": null,
+       "reason": "Driver reports traffic delay with new ETA 11:20 and requests a slot after 12:00. Shipment SHP1006 is known with current appointment at 10:00. Clear clock-time ETA provided, so propose rescheduling."
       },
       "error": null,
-      "violations": [
-       "selected_id wa-9001 does not appear in the input"
+      "violations": [],
+      "ungrounded": [
+       "12:00"
       ],
-      "ungrounded": [],
       "allowed": null,
-      "seconds": 6.5,
+      "seconds": 23.4,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -8785,17 +8815,17 @@
        ]
       },
       "checks": {
-       "action": false,
+       "action": true,
        "verification": true
       },
-      "correct": false
+      "correct": true
      },
      "board": null
     },
     {
      "t": "09:34",
      "actor": "DISPATCH",
-     "text": "Dispatch SHP1006 (REPLAN after 12:00) → PROPOSE SLOT-JAI-006 [UNVERIFIED]",
+     "text": "Dispatch SHP1006 (REPLAN after 12:00) → PROPOSE SLOT-JAI-006 [NOT_APPLICABLE]",
      "tags": [
       "D5"
      ],
@@ -8919,7 +8949,7 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-006",
@@ -8932,21 +8962,16 @@
         "confirms_claim": null
        },
        "evidence": [
-        "REPLAN after 12:00",
+        "request: REPLAN after 12:00",
         "now: 09:34",
-        "shipment_id: SHP1006",
         "planning_eta: 11:20",
-        "feasible_ids: SLOT-JAI-006, SLOT-JAI-034, SLOT-JAI-048, SLOT-JAI-007",
-        "SLOT-JAI-006 start: 13:00 end: 13:45 dock: D1",
-        "SLOT-JAI-034 start: 13:00 end: 13:45 dock: D3",
-        "SLOT-JAI-048 start: 13:00 end: 13:45 dock: D4",
-        "SLOT-JAI-007 start: 14:00 end: 14:45 dock: D1"
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-006\",\"SLOT-JAI-034\",\"SLOT-JAI-048\",\"SLOT-JAI-007\"]"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after 12:00 is SLOT-JAI-006 at 13:00 on dock D1, matching shipment requirements (STANDARD dock, 45 min unload, weight 7800 kg)."
+       "reason": "Earliest feasible slot after 12:00 is 13:00; selected SLOT-JAI-006 on D1."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-006",
@@ -8959,23 +8984,16 @@
         "confirms_claim": null
        },
        "evidence": [
-        "REPLAN after 12:00",
+        "request: REPLAN after 12:00",
         "now: 09:34",
-        "shipment_id: SHP1006",
         "planning_eta: 11:20",
-        "feasible_ids: SLOT-JAI-006, SLOT-JAI-034, SLOT-JAI-048, SLOT-JAI-007",
-        "SLOT-JAI-006 start: 13:00 end: 13:45 dock: D1",
-        "SLOT-JAI-034 start: 13:00 end: 13:45 dock: D3",
-        "SLOT-JAI-048 start: 13:00 end: 13:45 dock: D4",
-        "SLOT-JAI-007 start: 14:00 end: 14:45 dock: D1"
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-006\",\"SLOT-JAI-034\",\"SLOT-JAI-048\",\"SLOT-JAI-007\"]"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after 12:00 is SLOT-JAI-006 at 13:00 on dock D1, matching shipment requirements (STANDARD dock, 45 min unload, weight 7800 kg)."
+       "reason": "Earliest feasible slot after 12:00 is 13:00; selected SLOT-JAI-006 on D1."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "SLOT-JAI-006",
@@ -8983,7 +9001,7 @@
        "SLOT-JAI-048",
        "SLOT-JAI-007"
       ],
-      "seconds": 13.2,
+      "seconds": 9.6,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -9711,19 +9729,17 @@
         "confirms_claim": null
        },
        "evidence": [
-        "thread_id: THR009",
-        "external_id: wa-9009",
-        "sender: DRV006",
-        "text: Traffic after Shahpura. Reaching around 11:20. Any slot after 12?",
-        "already_processed.thread_id: THR001",
-        "already_processed.external_id: wa-9001",
-        "already_processed.same_text: true",
-        "already_processed.seconds_apart: 62",
-        "already_processed.dedupe_key: DRV006-SHP1006-20260804-0934",
-        "independent_confirmation: []"
+        "THR009",
+        "wa-9009",
+        "DRV006",
+        "11:20",
+        "THR001",
+        "wa-9001",
+        "62",
+        "DRV006-SHP1006-20260804-0934"
        ],
        "question": null,
-       "reason": "Duplicate message detected: same driver, same text, 62 seconds after previous message (wa-9001). No independent confirmation of ETA claim."
+       "reason": "Duplicate ETA update message received 62 seconds after previous identical message; no independent confirmation of claimed 11:20 arrival."
       },
       "guarded": {
        "verification": "UNVERIFIED",
@@ -9739,19 +9755,17 @@
         "confirms_claim": null
        },
        "evidence": [
-        "thread_id: THR009",
-        "external_id: wa-9009",
-        "sender: DRV006",
-        "text: Traffic after Shahpura. Reaching around 11:20. Any slot after 12?",
-        "already_processed.thread_id: THR001",
-        "already_processed.external_id: wa-9001",
-        "already_processed.same_text: true",
-        "already_processed.seconds_apart: 62",
-        "already_processed.dedupe_key: DRV006-SHP1006-20260804-0934",
-        "independent_confirmation: []"
+        "THR009",
+        "wa-9009",
+        "DRV006",
+        "11:20",
+        "THR001",
+        "wa-9001",
+        "62",
+        "DRV006-SHP1006-20260804-0934"
        ],
        "question": null,
-       "reason": "Duplicate message detected: same driver, same text, 62 seconds after previous message (wa-9001). No independent confirmation of ETA claim."
+       "reason": "Duplicate ETA update message received 62 seconds after previous identical message; no independent confirmation of claimed 11:20 arrival."
       },
       "error": null,
       "violations": [
@@ -9759,7 +9773,7 @@
       ],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 12.1,
+      "seconds": 42.2,
       "expect": {
        "actions": [
         "DUPLICATE"
@@ -11142,7 +11156,7 @@
     {
      "t": "09:52",
      "actor": "DISPATCH",
-     "text": "Dispatch SHP1006 (RE-OFFER after stale option) → PROPOSE SLOT-JAI-034 [UNVERIFIED]",
+     "text": "Dispatch SHP1006 (RE-OFFER after stale option) → PROPOSE SLOT-JAI-034 [NOT_APPLICABLE]",
      "tags": [
       "D9"
      ],
@@ -11266,7 +11280,7 @@
        }
       },
       "raw": {
-       "verification": "VERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-034",
@@ -11279,23 +11293,15 @@
         "confirms_claim": null
        },
        "evidence": [
-        "SLOT-JAI-034",
-        "SLOT-JAI-048",
-        "SLOT-JAI-007",
-        "SLOT-JAI-021",
-        "13:00",
-        "13:45",
-        "D3",
-        "D4",
-        "D1",
-        "D2",
-        "11:20"
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-034\",\"SLOT-JAI-048\",\"SLOT-JAI-007\",\"SLOT-JAI-021\"]",
+        "slot SLOT-JAI-034: dock D3, start 13:00, end 13:45",
+        "shipment planning_eta 11:20"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after planning ETA 11:20 is SLOT-JAI-034 at 13:00 on D3."
+       "reason": "Earliest feasible slot after planning ETA 11:20; both 13:00 slots are equivalent, selected first in list."
       },
       "guarded": {
-       "verification": "UNVERIFIED",
+       "verification": "NOT_APPLICABLE",
        "action": "PROPOSE",
        "ask_whom": "NONE",
        "selected_id": "SLOT-JAI-034",
@@ -11308,25 +11314,15 @@
         "confirms_claim": null
        },
        "evidence": [
-        "SLOT-JAI-034",
-        "SLOT-JAI-048",
-        "SLOT-JAI-007",
-        "SLOT-JAI-021",
-        "13:00",
-        "13:45",
-        "D3",
-        "D4",
-        "D1",
-        "D2",
-        "11:20"
+        "deterministic_feasibility.feasible_ids: [\"SLOT-JAI-034\",\"SLOT-JAI-048\",\"SLOT-JAI-007\",\"SLOT-JAI-021\"]",
+        "slot SLOT-JAI-034: dock D3, start 13:00, end 13:45",
+        "shipment planning_eta 11:20"
        ],
        "question": null,
-       "reason": "Earliest feasible slot after planning ETA 11:20 is SLOT-JAI-034 at 13:00 on D3."
+       "reason": "Earliest feasible slot after planning ETA 11:20; both 13:00 slots are equivalent, selected first in list."
       },
       "error": null,
-      "violations": [
-       "VERIFIED without independent confirmation -> UNVERIFIED"
-      ],
+      "violations": [],
       "ungrounded": [],
       "allowed": [
        "SLOT-JAI-034",
@@ -11334,7 +11330,7 @@
        "SLOT-JAI-007",
        "SLOT-JAI-021"
       ],
-      "seconds": 19.4,
+      "seconds": 6.4,
       "expect": {
        "actions": [
         "PROPOSE"
@@ -12436,7 +12432,7 @@
     ],
     "stale_caught": 0,
     "agent_calls": 2,
-    "agent_correct": 1,
+    "agent_correct": 2,
     "guard_interventions": 0,
     "minutes_to_outcome": 1,
     "turns_to_outcome": 2,
@@ -12795,7 +12791,7 @@
     {
      "t": "16:24",
      "actor": "TRIAGE",
-     "text": "Triage THR005 → CLARIFY THR005, ask FACILITY [UNVERIFIED]",
+     "text": "Triage THR005 → PROPOSE [UNVERIFIED]",
      "tags": [
       "H"
      ],
@@ -12830,12 +12826,12 @@
       },
       "raw": {
        "verification": "UNVERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
-       "selected_id": "THR005",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
-        "report_type": "QUESTION",
+        "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1015",
         "claimed_eta": "18:30",
         "dock_code": "D5",
@@ -12844,23 +12840,23 @@
        "evidence": [
         "THR005",
         "DRV015",
+        "Evening traffic. ETA 6:30. Can the reefer unload tonight?",
         "SHP1015",
-        "6:30",
-        "D5",
+        "APT1015A",
         "17:00",
-        "REEFER"
+        "D5"
        ],
-       "question": "Can the reefer unload tonight for shipment SHP1015 at dock D5?",
-       "reason": "Driver reports ETA 6:30 (likely 18:30) which is later than the 17:00 appointment at D5, and asks if reefer unload is possible tonight. No independent confirmation. Need facility to confirm dock availability for reefer unload tonight."
+       "question": null,
+       "reason": "Driver provided ETA 18:30 for shipment SHP1015 (current appointment 17:00 at D5) and asked if reefer can unload tonight. No independent confirmation. Propose re-plan for dispatch."
       },
       "guarded": {
        "verification": "UNVERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
-       "selected_id": "THR005",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
-        "report_type": "QUESTION",
+        "report_type": "ETA_UPDATE",
         "shipment_id": "SHP1015",
         "claimed_eta": "18:30",
         "dock_code": "D5",
@@ -12869,20 +12865,20 @@
        "evidence": [
         "THR005",
         "DRV015",
+        "Evening traffic. ETA 6:30. Can the reefer unload tonight?",
         "SHP1015",
-        "6:30",
-        "D5",
+        "APT1015A",
         "17:00",
-        "REEFER"
+        "D5"
        ],
-       "question": "Can the reefer unload tonight for shipment SHP1015 at dock D5?",
-       "reason": "Driver reports ETA 6:30 (likely 18:30) which is later than the 17:00 appointment at D5, and asks if reefer unload is possible tonight. No independent confirmation. Need facility to confirm dock availability for reefer unload tonight."
+       "question": null,
+       "reason": "Driver provided ETA 18:30 for shipment SHP1015 (current appointment 17:00 at D5) and asked if reefer can unload tonight. No independent confirmation. Propose re-plan for dispatch."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 48.8,
+      "seconds": 32.9,
       "expect": {
        "actions": [
         "ESCALATE",
@@ -12895,10 +12891,10 @@
        ]
       },
       "checks": {
-       "action": false,
+       "action": true,
        "verification": true
       },
-      "correct": false
+      "correct": true
      },
      "board": null
     },
@@ -12996,28 +12992,20 @@
         "report_type": "OTHER",
         "shipment_id": "SHP1015",
         "claimed_eta": "18:45",
-        "dock_code": "D5",
+        "dock_code": null,
         "confirms_claim": null
        },
        "evidence": [
-        "request: REPLAN reefer",
-        "now: 16:24",
         "shipment_id: SHP1015",
-        "order_reference: ORD-260804-015",
-        "driver_id: DRV015",
-        "load_weight_kg: 15000",
+        "planning_eta: 18:45",
         "required_dock_type: REEFER",
         "temperature_control_required: true",
-        "priority: HIGH",
-        "expected_unload_min: 60",
-        "status: IN_TRANSIT",
-        "current_appointment: {appointment_id: APT1015A, appointment_status: CONFIRMED, slot_id: SLOT-JAI-066, dock_code: D5, start: 17:00}",
-        "planning_eta: 18:45",
-        "slots: SLOT-JAI-011 (D1, 18:00-19:00, feasible: false), SLOT-JAI-025 (D2, 18:00-19:00, feasible: false), SLOT-JAI-039 (D3, 18:00-19:00, feasible: false)",
-        "deterministic_feasibility: {feasible_ids: []}"
+        "current_appointment slot_id: SLOT-JAI-066 start: 17:00",
+        "deterministic_feasibility feasible_ids: []",
+        "slots: SLOT-JAI-011, SLOT-JAI-025, SLOT-JAI-039 all infeasible"
        ],
        "question": null,
-       "reason": "No feasible reefer slots available; all candidate slots are standard docks (D1, D2, D3) and start at 18:00, which is before the planning ETA of 18:45. Deterministic feasibility returned empty feasible_ids."
+       "reason": "No feasible slots available for reefer shipment SHP1015 given ETA 18:45 and requirement for REEFER dock (D5). All candidate slots are STANDARD docks and start before ETA."
       },
       "guarded": {
        "verification": "NOT_APPLICABLE",
@@ -13029,34 +13017,26 @@
         "report_type": "OTHER",
         "shipment_id": "SHP1015",
         "claimed_eta": "18:45",
-        "dock_code": "D5",
+        "dock_code": null,
         "confirms_claim": null
        },
        "evidence": [
-        "request: REPLAN reefer",
-        "now: 16:24",
         "shipment_id: SHP1015",
-        "order_reference: ORD-260804-015",
-        "driver_id: DRV015",
-        "load_weight_kg: 15000",
+        "planning_eta: 18:45",
         "required_dock_type: REEFER",
         "temperature_control_required: true",
-        "priority: HIGH",
-        "expected_unload_min: 60",
-        "status: IN_TRANSIT",
-        "current_appointment: {appointment_id: APT1015A, appointment_status: CONFIRMED, slot_id: SLOT-JAI-066, dock_code: D5, start: 17:00}",
-        "planning_eta: 18:45",
-        "slots: SLOT-JAI-011 (D1, 18:00-19:00, feasible: false), SLOT-JAI-025 (D2, 18:00-19:00, feasible: false), SLOT-JAI-039 (D3, 18:00-19:00, feasible: false)",
-        "deterministic_feasibility: {feasible_ids: []}"
+        "current_appointment slot_id: SLOT-JAI-066 start: 17:00",
+        "deterministic_feasibility feasible_ids: []",
+        "slots: SLOT-JAI-011, SLOT-JAI-025, SLOT-JAI-039 all infeasible"
        ],
        "question": null,
-       "reason": "No feasible reefer slots available; all candidate slots are standard docks (D1, D2, D3) and start at 18:00, which is before the planning ETA of 18:45. Deterministic feasibility returned empty feasible_ids."
+       "reason": "No feasible slots available for reefer shipment SHP1015 given ETA 18:45 and requirement for REEFER dock (D5). All candidate slots are STANDARD docks and start before ETA."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": [],
-      "seconds": 24.8,
+      "seconds": 10.3,
       "expect": {
        "actions": [
         "ESCALATE",
@@ -13653,7 +13633,7 @@
     {
      "t": "09:27",
      "actor": "TRIAGE",
-     "text": "Triage THR008 (claim + gate record) → NO_ACTION THR008 [VERIFIED]",
+     "text": "Triage THR008 (claim + gate record) → NO_ACTION [VERIFIED]",
      "tags": [
       "H"
      ],
@@ -13699,7 +13679,7 @@
        "verification": "VERIFIED",
        "action": "NO_ACTION",
        "ask_whom": "NONE",
-       "selected_id": "THR008",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "QUESTION",
@@ -13710,16 +13690,16 @@
        },
        "evidence": [
         "CHK1004 gate check-in 09:25",
-        "facility update: SHP1002 finishing on D2 about 09:45; SHP1004 keeps D2 booking"
+        "facility update: SHP1004 keeps D2 booking"
        ],
        "question": null,
-       "reason": "Driver's arrival in yard confirmed by gate check-in CHK1004 at 09:25. Facility update indicates SHP1004 retains dock D2 assignment. No further verification or action required."
+       "reason": "Driver's arrival verified by gate check-in; facility update confirms dock D2 remains assigned; status question requires no action."
       },
       "guarded": {
        "verification": "VERIFIED",
        "action": "NO_ACTION",
        "ask_whom": "NONE",
-       "selected_id": "THR008",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "QUESTION",
@@ -13730,16 +13710,16 @@
        },
        "evidence": [
         "CHK1004 gate check-in 09:25",
-        "facility update: SHP1002 finishing on D2 about 09:45; SHP1004 keeps D2 booking"
+        "facility update: SHP1004 keeps D2 booking"
        ],
        "question": null,
-       "reason": "Driver's arrival in yard confirmed by gate check-in CHK1004 at 09:25. Facility update indicates SHP1004 retains dock D2 assignment. No further verification or action required."
+       "reason": "Driver's arrival verified by gate check-in; facility update confirms dock D2 remains assigned; status question requires no action."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 20.7,
+      "seconds": 17.0,
       "expect": {
        "actions": [
         "NO_ACTION",
@@ -14139,7 +14119,7 @@
     {
      "t": "08:22",
      "actor": "TRIAGE",
-     "text": "Triage THR007 (claim + gate record) → CLARIFY THR007, ask FACILITY [VERIFIED]",
+     "text": "Triage THR007 (claim + gate record) → PROPOSE [VERIFIED]",
      "tags": [
       "H"
      ],
@@ -14181,9 +14161,9 @@
       },
       "raw": {
        "verification": "VERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
-       "selected_id": "THR007",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "QUESTION",
@@ -14194,16 +14174,16 @@
        },
        "evidence": [
         "CHK1003 gate check-in 08:20",
-        "current appointment 09:00 at D1"
+        "current appointment start 09:00 at dock D1"
        ],
-       "question": "Is a STANDARD dock available now for SHP1003 (driver DRV003) instead of the 09:00 appointment at D1?",
-       "reason": "Driver verified at gate via check-in CHK1003 at 08:20, asking for early dock assignment; facility must confirm dock availability."
+       "question": null,
+       "reason": "Driver's presence at gate confirmed by independent gate check-in CHK1003 at 08:20; request for earlier dock assignment can be handled by dispatch re-planning."
       },
       "guarded": {
        "verification": "VERIFIED",
-       "action": "CLARIFY",
-       "ask_whom": "FACILITY",
-       "selected_id": "THR007",
+       "action": "PROPOSE",
+       "ask_whom": "NONE",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "QUESTION",
@@ -14214,16 +14194,16 @@
        },
        "evidence": [
         "CHK1003 gate check-in 08:20",
-        "current appointment 09:00 at D1"
+        "current appointment start 09:00 at dock D1"
        ],
-       "question": "Is a STANDARD dock available now for SHP1003 (driver DRV003) instead of the 09:00 appointment at D1?",
-       "reason": "Driver verified at gate via check-in CHK1003 at 08:20, asking for early dock assignment; facility must confirm dock availability."
+       "question": null,
+       "reason": "Driver's presence at gate confirmed by independent gate check-in CHK1003 at 08:20; request for earlier dock assignment can be handled by dispatch re-planning."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 13.2,
+      "seconds": 25.2,
       "expect": {
        "actions": [
         "CLARIFY",
@@ -14269,7 +14249,7 @@
     {
      "t": "10:00",
      "actor": "TRIAGE",
-     "text": "Triage arrival claim (no check-in) → CLARIFY SHP1012, ask FACILITY [UNVERIFIED]",
+     "text": "Triage arrival claim (no check-in) → CLARIFY, ask FACILITY [UNVERIFIED]",
      "tags": [
       "H"
      ],
@@ -14310,7 +14290,7 @@
        "verification": "UNVERIFIED",
        "action": "CLARIFY",
        "ask_whom": "FACILITY",
-       "selected_id": "SHP1012",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ARRIVAL_CLAIM",
@@ -14320,20 +14300,31 @@
         "confirms_claim": null
        },
        "evidence": [
-        "DRV012 message: 'I'm at the gate now, give me a dock.' at 10:00",
-        "shipment SHP1012 status: IN_TRANSIT",
+        "sender: DRV012",
+        "text: I'm at the gate now, give me a dock.",
+        "sent_at: 10:00",
+        "shipment_id: SHP1012",
+        "order_reference: ORD-260804-012",
+        "driver_id: DRV012",
+        "load_weight_kg: 8000",
+        "required_dock_type: STANDARD",
+        "temperature_control_required: false",
+        "priority: NORMAL",
+        "expected_unload_min: 45",
+        "status: IN_TRANSIT",
+        "current_appointment: null",
+        "eta_history: [{\"id\": \"ETA007\", \"eta\": \"11:10\", \"confidence\": \"HIGH\", \"created\": \"09:30\", \"note\": \"Tyre repaired\"}]",
         "gate_check_in: null",
-        "independent_confirmation: []",
-        "eta_history: ETA007 11:10 HIGH 09:30 'Tyre repaired'"
+        "independent_confirmation: []"
        ],
-       "question": "Is truck DRV012 currently at the gate for shipment SHP1012?",
-       "reason": "Driver claims arrival at gate but no gate check-in or facility confirmation exists; need facility verification before dock assignment."
+       "question": "Can you confirm that driver DRV012 for shipment SHP1012 is at the gate?",
+       "reason": "Driver claims arrival at gate but no gate check-in or independent confirmation exists; facility verification required before any dock assignment."
       },
       "guarded": {
        "verification": "UNVERIFIED",
        "action": "CLARIFY",
        "ask_whom": "FACILITY",
-       "selected_id": "SHP1012",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "ARRIVAL_CLAIM",
@@ -14343,20 +14334,31 @@
         "confirms_claim": null
        },
        "evidence": [
-        "DRV012 message: 'I'm at the gate now, give me a dock.' at 10:00",
-        "shipment SHP1012 status: IN_TRANSIT",
+        "sender: DRV012",
+        "text: I'm at the gate now, give me a dock.",
+        "sent_at: 10:00",
+        "shipment_id: SHP1012",
+        "order_reference: ORD-260804-012",
+        "driver_id: DRV012",
+        "load_weight_kg: 8000",
+        "required_dock_type: STANDARD",
+        "temperature_control_required: false",
+        "priority: NORMAL",
+        "expected_unload_min: 45",
+        "status: IN_TRANSIT",
+        "current_appointment: null",
+        "eta_history: [{\"id\": \"ETA007\", \"eta\": \"11:10\", \"confidence\": \"HIGH\", \"created\": \"09:30\", \"note\": \"Tyre repaired\"}]",
         "gate_check_in: null",
-        "independent_confirmation: []",
-        "eta_history: ETA007 11:10 HIGH 09:30 'Tyre repaired'"
+        "independent_confirmation: []"
        ],
-       "question": "Is truck DRV012 currently at the gate for shipment SHP1012?",
-       "reason": "Driver claims arrival at gate but no gate check-in or facility confirmation exists; need facility verification before dock assignment."
+       "question": "Can you confirm that driver DRV012 for shipment SHP1012 is at the gate?",
+       "reason": "Driver claims arrival at gate but no gate check-in or independent confirmation exists; facility verification required before any dock assignment."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 9.5,
+      "seconds": 12.2,
       "expect": {
        "actions": [
         "CLARIFY"
@@ -14381,7 +14383,7 @@
     {
      "t": "10:03",
      "actor": "FACILITY",
-     "text": "Gate: no truck WB23GT4112 (VEH012) at the gate.",
+     "text": "Gate: vehicle VEH012 has not checked in at the gate.",
      "tags": [],
      "data": null,
      "agent": null,
@@ -14400,7 +14402,7 @@
       "payload": {
        "message": {
         "source": "FACILITY",
-        "text": "Gate: no truck WB23GT4112 (VEH012) at the gate."
+        "text": "Gate: vehicle VEH012 has not checked in at the gate."
        },
        "claim": {
         "sender": "DRV012",
@@ -14424,12 +14426,14 @@
         "confirms_claim": false
        },
        "evidence": [
-        "Gate: no truck WB23GT4112 (VEH012) at the gate.",
+        "VEH012",
+        "DRV012",
+        "Gate: vehicle VEH012 has not checked in at the gate.",
         "I'm at the gate now, give me a dock.",
         "gate log via facility"
        ],
-       "question": "Which gate are you currently at, and can you confirm your truck ID WB23GT4112 (VEH012)?",
-       "reason": "Facility gate log independently confirms no truck with that ID is at the gate, contradicting driver's arrival claim. Need driver to clarify location and truck identification."
+       "question": "Have you checked in at the gate?",
+       "reason": "Driver claims to be at the gate, but facility gate log shows vehicle VEH012 has not checked in. Need to clarify with driver whether they have completed gate check-in."
       },
       "guarded": {
        "verification": "VERIFIED",
@@ -14445,18 +14449,20 @@
         "confirms_claim": false
        },
        "evidence": [
-        "Gate: no truck WB23GT4112 (VEH012) at the gate.",
+        "VEH012",
+        "DRV012",
+        "Gate: vehicle VEH012 has not checked in at the gate.",
         "I'm at the gate now, give me a dock.",
         "gate log via facility"
        ],
-       "question": "Which gate are you currently at, and can you confirm your truck ID WB23GT4112 (VEH012)?",
-       "reason": "Facility gate log independently confirms no truck with that ID is at the gate, contradicting driver's arrival claim. Need driver to clarify location and truck identification."
+       "question": "Have you checked in at the gate?",
+       "reason": "Driver claims to be at the gate, but facility gate log shows vehicle VEH012 has not checked in. Need to clarify with driver whether they have completed gate check-in."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 66.1,
+      "seconds": 39.7,
       "expect": {
        "actions": [
         "CLARIFY",
@@ -14513,7 +14519,7 @@
     {
      "t": "10:05",
      "actor": "TRIAGE",
-     "text": "Triage outage claim → CLARIFY DRV013, ask FACILITY [UNVERIFIED]",
+     "text": "Triage outage claim → CLARIFY, ask FACILITY [UNVERIFIED]",
      "tags": [
       "H"
      ],
@@ -14534,7 +14540,7 @@
        "verification": "UNVERIFIED",
        "action": "CLARIFY",
        "ask_whom": "FACILITY",
-       "selected_id": "DRV013",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "DOCK_OUTAGE",
@@ -14548,13 +14554,13 @@
         "DEVT003 capacity reduction 08:00–09:20 (ended)"
        ],
        "question": "Is dock D2 currently broken or unavailable for unloading?",
-       "reason": "Driver claims D2 is broken and requests reassignment to D4, but only a past capacity reduction event (ended) is recorded. No independent facility confirmation of current outage exists; need facility verification."
+       "reason": "Driver claims D2 is broken, but the last dock event shows a capacity reduction that ended at 09:20. Facility confirmation needed before any reassignment."
       },
       "guarded": {
        "verification": "UNVERIFIED",
        "action": "CLARIFY",
        "ask_whom": "FACILITY",
-       "selected_id": "DRV013",
+       "selected_id": null,
        "state_change_allowed": false,
        "extracted": {
         "report_type": "DOCK_OUTAGE",
@@ -14568,7 +14574,7 @@
         "DEVT003 capacity reduction 08:00–09:20 (ended)"
        ],
        "question": "Is dock D2 currently broken or unavailable for unloading?",
-       "reason": "Driver claims D2 is broken and requests reassignment to D4, but only a past capacity reduction event (ended) is recorded. No independent facility confirmation of current outage exists; need facility verification."
+       "reason": "Driver claims D2 is broken, but the last dock event shows a capacity reduction that ended at 09:20. Facility confirmation needed before any reassignment."
       },
       "error": null,
       "violations": [],
@@ -14576,7 +14582,7 @@
        "9:20"
       ],
       "allowed": null,
-      "seconds": 18.1,
+      "seconds": 10.0,
       "expect": {
        "actions": [
         "CLARIFY"
@@ -14630,7 +14636,7 @@
     {
      "t": "10:12",
      "actor": "TRIAGE",
-     "text": "Triage THR012 status → NO_ACTION [NOT_APPLICABLE]",
+     "text": "Triage THR012 status → NO_ACTION [VERIFIED]",
      "tags": [
       "D11"
      ],
@@ -14665,7 +14671,7 @@
        ]
       },
       "raw": {
-       "verification": "NOT_APPLICABLE",
+       "verification": "VERIFIED",
        "action": "NO_ACTION",
        "ask_whom": "NONE",
        "selected_id": null,
@@ -14678,18 +14684,15 @@
         "confirms_claim": null
        },
        "evidence": [
-        "THR012",
-        "SHP1019",
-        "OM005",
-        "status: CANCELLED",
-        "current_appointment: null",
-        "OM005 text: Shipment SHP1019 and its 4 PM appointment are cancelled. Do not travel to the facility."
+        "OM005 dispatch SMS",
+        "linked shipment status CANCELLED",
+        "current_appointment null"
        ],
        "question": null,
-       "reason": "Driver asks if 4 PM slot is still active; independent confirmation (OM005 dispatch SMS) states shipment SHP1019 and its 4 PM appointment are cancelled. No factual claim by driver to verify."
+       "reason": "The operational message OM005 confirms the 4 PM appointment for SHP1019 is cancelled; the driver's question is a status inquiry requiring no change."
       },
       "guarded": {
-       "verification": "NOT_APPLICABLE",
+       "verification": "VERIFIED",
        "action": "NO_ACTION",
        "ask_whom": "NONE",
        "selected_id": null,
@@ -14702,21 +14705,18 @@
         "confirms_claim": null
        },
        "evidence": [
-        "THR012",
-        "SHP1019",
-        "OM005",
-        "status: CANCELLED",
-        "current_appointment: null",
-        "OM005 text: Shipment SHP1019 and its 4 PM appointment are cancelled. Do not travel to the facility."
+        "OM005 dispatch SMS",
+        "linked shipment status CANCELLED",
+        "current_appointment null"
        ],
        "question": null,
-       "reason": "Driver asks if 4 PM slot is still active; independent confirmation (OM005 dispatch SMS) states shipment SHP1019 and its 4 PM appointment are cancelled. No factual claim by driver to verify."
+       "reason": "The operational message OM005 confirms the 4 PM appointment for SHP1019 is cancelled; the driver's question is a status inquiry requiring no change."
       },
       "error": null,
       "violations": [],
       "ungrounded": [],
       "allowed": null,
-      "seconds": 48.7,
+      "seconds": 7.3,
       "expect": {
        "actions": [
         "NO_ACTION"
@@ -15221,5 +15221,275 @@
    "start": "20:00",
    "end": "21:30"
   }
- ]
+ ],
+ "repeats": {
+  "runs": 3,
+  "accuracy": {
+   "mean": 0.975,
+   "min": 0.926,
+   "max": 1.0
+  },
+  "workflow_confidence": {
+   "mean": 98.8,
+   "min": 96.3,
+   "max": 100.0
+  },
+  "mean_consistency": 0.939,
+  "per_call": [
+   {
+    "call": "S1#1 Triage THR011",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|None|UNVERIFIED"
+   },
+   {
+    "call": "S1#2 Dispatch SHP1017 (OPTIONS_ONLY - compare, do not book)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|SLOT-JAI-006|NOT_APPLICABLE"
+   },
+   {
+    "call": "S2#1 Triage THR003",
+    "runs": 3,
+    "correct_rate": 0.67,
+    "consistency": 0.67,
+    "modal": "CLARIFY|DRIVER|None|UNVERIFIED"
+   },
+   {
+    "call": "S2#2 Triage THR003 reply",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|None|UNVERIFIED"
+   },
+   {
+    "call": "S2#3 Dispatch SHP1013 (REPLAN after clarified ETA)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|SLOT-JAI-019|NOT_APPLICABLE"
+   },
+   {
+    "call": "S2#4 Triage THR010",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "CLARIFY|DRIVER|None|UNVERIFIED"
+   },
+   {
+    "call": "S2#5 Dispatch SHP1020 (REPLAN after driver ETA)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 0.67,
+    "modal": "PROPOSE|NONE|SLOT-JAI-012|NOT_APPLICABLE"
+   },
+   {
+    "call": "S3#1 Assessment SHP1010",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|DOCK-JAI-D5|NOT_APPLICABLE"
+   },
+   {
+    "call": "S3#2 Assessment SHP1016",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|DOCK-JAI-D6|NOT_APPLICABLE"
+   },
+   {
+    "call": "S3#3 Dispatch SHP1016 (REPLAN heavy load)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|SLOT-JAI-074|NOT_APPLICABLE"
+   },
+   {
+    "call": "S3#4 Assessment SHP1015",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "NO_FEASIBLE_OPTION|NONE|None|NOT_APPLICABLE"
+   },
+   {
+    "call": "S4#1 Dispatch SHP1014 (REPLAN under contention)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|SLOT-JAI-019|NOT_APPLICABLE"
+   },
+   {
+    "call": "S4#2 Dispatch SHP1006 (REPLAN under contention)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|SLOT-JAI-006|NOT_APPLICABLE"
+   },
+   {
+    "call": "S4#3 Dispatch SHP1012 (REPLAN under contention)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "NO_FEASIBLE_OPTION|NONE|None|NOT_APPLICABLE"
+   },
+   {
+    "call": "S5#1 Triage OM003 (facility source)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 0.67,
+    "modal": "PROPOSE|NONE|None|VERIFIED"
+   },
+   {
+    "call": "S5#2 Triage THR001",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|None|UNVERIFIED"
+   },
+   {
+    "call": "S5#3 Dispatch SHP1006 (REPLAN after 12:00)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|SLOT-JAI-006|NOT_APPLICABLE"
+   },
+   {
+    "call": "S5#4 Triage THR009",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 0.67,
+    "modal": "DUPLICATE|NONE|None|UNVERIFIED"
+   },
+   {
+    "call": "S5#5 Dispatch SHP1006 (RE-OFFER after stale option)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|SLOT-JAI-034|NOT_APPLICABLE"
+   },
+   {
+    "call": "S6#1 Triage THR005",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|None|UNVERIFIED"
+   },
+   {
+    "call": "S6#2 Dispatch SHP1015 (REPLAN reefer)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "NO_FEASIBLE_OPTION|NONE|None|NOT_APPLICABLE"
+   },
+   {
+    "call": "S7#1 Triage THR008 (claim + gate record)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "NO_ACTION|NONE|None|VERIFIED"
+   },
+   {
+    "call": "S8#1 Triage THR007 (claim + gate record)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "PROPOSE|NONE|None|VERIFIED"
+   },
+   {
+    "call": "S8#2 Triage arrival claim (no check-in)",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "CLARIFY|FACILITY|None|UNVERIFIED"
+   },
+   {
+    "call": "S8#3 Triage facility reply",
+    "runs": 3,
+    "correct_rate": 0.67,
+    "consistency": 0.67,
+    "modal": "CLARIFY|DRIVER|None|VERIFIED"
+   },
+   {
+    "call": "S8#4 Triage outage claim",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "CLARIFY|FACILITY|None|UNVERIFIED"
+   },
+   {
+    "call": "S8#5 Triage THR012 status",
+    "runs": 3,
+    "correct_rate": 1.0,
+    "consistency": 1.0,
+    "modal": "NO_ACTION|NONE|None|VERIFIED"
+   }
+  ],
+  "per_run": [
+   {
+    "agent_decision_accuracy": 1.0,
+    "agent_calls": 27,
+    "agent_errors": 0,
+    "guard_interventions": 1,
+    "ungrounded_answers": 2,
+    "resolved_without_takeover": 0.62,
+    "conflicting_allocations": 0,
+    "options_infeasible_at_recheck": 1,
+    "escalation_completeness": 1.0,
+    "escalations": 3,
+    "clarification_turns": 2,
+    "avg_turns_to_outcome": 5.4,
+    "avg_minutes_to_outcome": 81.8,
+    "priority_violations": 0,
+    "utilisation_11_14_standard": 0.7,
+    "avg_wait_before": 83.3,
+    "avg_wait_after": 78.3,
+    "mean_agent_latency_s": 15.1,
+    "workflow_confidence": 100.0
+   },
+   {
+    "agent_decision_accuracy": 0.926,
+    "agent_calls": 27,
+    "agent_errors": 0,
+    "guard_interventions": 0,
+    "ungrounded_answers": 2,
+    "resolved_without_takeover": 0.62,
+    "conflicting_allocations": 0,
+    "options_infeasible_at_recheck": 1,
+    "escalation_completeness": 1.0,
+    "escalations": 3,
+    "clarification_turns": 2,
+    "avg_turns_to_outcome": 5.4,
+    "avg_minutes_to_outcome": 81.8,
+    "priority_violations": 0,
+    "utilisation_11_14_standard": 0.7,
+    "avg_wait_before": 83.3,
+    "avg_wait_after": 78.3,
+    "mean_agent_latency_s": 15.1,
+    "workflow_confidence": 96.3
+   },
+   {
+    "agent_decision_accuracy": 1.0,
+    "agent_calls": 27,
+    "agent_errors": 0,
+    "guard_interventions": 0,
+    "ungrounded_answers": 1,
+    "resolved_without_takeover": 0.62,
+    "conflicting_allocations": 0,
+    "options_infeasible_at_recheck": 1,
+    "escalation_completeness": 1.0,
+    "escalations": 3,
+    "clarification_turns": 2,
+    "avg_turns_to_outcome": 5.4,
+    "avg_minutes_to_outcome": 81.8,
+    "priority_violations": 0,
+    "utilisation_11_14_standard": 0.7,
+    "avg_wait_before": 83.3,
+    "avg_wait_after": 78.3,
+    "mean_agent_latency_s": 16.9,
+    "workflow_confidence": 100.0
+   }
+  ]
+ }
 }
