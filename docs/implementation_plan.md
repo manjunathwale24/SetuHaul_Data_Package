@@ -214,3 +214,26 @@ Effort M. Risk: small, biased history → require minimum sample size per segmen
 2. **Week 3-5**: P1.1 (in progress), P1.3, P1.5, P1.2 → shadow pilot on one facility.
 3. **Week 6-8**: P1.4, P1.6, P1.7 → assisted operation gate (PRD rollout phase 2).
 4. **Quarter 2**: P2.x.
+
+---
+
+## Service API
+
+`service.py` is a stdlib `http.server` JSON API around one `SlotEngine`. Run
+`python3 service.py --port 8080 [--db path] [--live]` (in-memory seed by default; a new `--db` file is
+seeded once and reused). Every request carries a simulated clock `"now": "HH:MM"` (4 Aug 2026, +05:30).
+
+| Endpoint | Behaviour |
+|---|---|
+| `POST /messages` `{external_id, sender, thread_id?, text, now}` | Idempotent on `external_id`. Links sender → shipment (asks which load if a driver has several active, e.g. DRV004), applies `revise_eta`, then returns `CLARIFY` (question), `OPTIONS` (≤3 feasible, nothing held) or `ESCALATED` (hand-off record with every `HANDOFF_FIELDS` entry). |
+| `POST /holds` `{shipment_id, slot_id, now, eta?}` | Re-check, then 10-min hold; `409` with reasons if infeasible or taken. |
+| `POST /holds/{group}/request` `{now, request_key}` | Idempotent on `request_key` (`DUPLICATE`); expired hold → `409 STALE`. |
+| `POST /holds/{group}/confirm` `{now, warehouse_ref}` | Re-check, then confirm (replaces the current appointment); repeat → `ALREADY_CONFIRMED`. |
+| `POST /holds/{group}/release`, `POST /appointments/{id}/release` `{now, reason}` | Idempotent release (`ALREADY_RELEASED`). |
+| `GET /shipments/{id}/options?now=&eta=`, `GET /board?now=`, `GET /integrity`, `GET /health`, `GET /audit` | Read-only views; `/integrity` returns `SlotEngine.conflicts()`. |
+
+Triage is deterministic unless `--live` and `NVIDIA_API_KEY` are set; the agent only annotates and its output
+always passes `guards.guard_answer` (driver reports are never `VERIFIED`). All engine access is serialised by
+one lock, so two simultaneous holds on a slot yield exactly one `200`. Every state change (ETA revision, hold,
+request, confirm, release, expiry, escalation, rejections) is appended to `service_audit_log`. Tests:
+`tests/test_service.py`.

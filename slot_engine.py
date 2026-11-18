@@ -327,6 +327,20 @@ class SlotEngine:
             (ts(now), reason, ts(now), appointment_id))
         return cur.rowcount == 1
 
+    def release_hold(self, group: str, now: int) -> int:
+        """Release a HELD/REQUESTED hold group. Idempotent: returns how many rows changed."""
+        self.expire_holds(now)
+        cur = self.db.execute(
+            "UPDATE slot_holds SET state='RELEASED' WHERE group_key=? AND state IN ('HELD','REQUESTED')", (group,))
+        return cur.rowcount
+
+    def release_confirmed_holds(self, shipment_id: str, slot_id: str) -> int:
+        """Free the CONFIRMED hold group behind a released appointment so the slot shows as free."""
+        cur = self.db.execute(
+            "UPDATE slot_holds SET state='RELEASED' WHERE state='CONFIRMED' AND shipment_id=? AND group_key IN"
+            " (SELECT group_key FROM slot_holds WHERE slot_id=? AND shipment_id=?)", (shipment_id, slot_id, shipment_id))
+        return cur.rowcount
+
     # ----- idempotency ----------------------------------------------------
     def seen(self, key: str) -> bool:
         return self.db.execute(
