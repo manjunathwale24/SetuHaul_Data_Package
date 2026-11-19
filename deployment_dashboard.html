@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c1017">
+  <title>SetuHaul · Deployment Control</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c1017;
+      --panel: #151b26;
+      --panel-2: #1b2431;
+      --line: #283243;
+      --muted: #8490a3;
+      --text: #edf2f7;
+      --lime: #c6f36a;
+      --cyan: #64d9e7;
+      --amber: #ffbf69;
+      --red: #ff7583;
+      --violet: #ad94ff;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--text); background: var(--bg); }
+    a { color: inherit; }
+    .app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar { display: flex; flex-direction: column; padding: 24px 15px 18px; background: #10151e; border-right: 1px solid #222b38; }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 9px; }
+    .brand-mark { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 11px; color: #141a12; background: var(--lime); font-size: 15px; font-weight: 900; }
+    .brand-name { font-size: 14px; font-weight: 750; }
+    .brand-sub { margin-top: 3px; color: var(--muted); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; }
+    .nav-label { margin: 37px 11px 9px; color: #667286; font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+    .nav-link { display: flex; align-items: center; gap: 10px; margin: 3px 0; padding: 11px 12px; color: #8995a8; border: 1px solid transparent; border-radius: 10px; font-size: 11px; text-decoration: none; }
+    .nav-link.active { color: var(--lime); background: #c6f36a12; border-color: #c6f36a20; }
+    .sidebar-note { margin-top: auto; padding: 13px; color: #9ba8b9; background: #171f2b; border: 1px solid var(--line); border-radius: 12px; font-size: 9px; line-height: 1.6; }
+    .main { min-width: 0; padding: 27px 30px 42px; }
+    .topbar, .title-row, .panel-head, .metric-row, .stage-top, .detail-row, .target-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+    .topbar { color: #9ba7b7; font-size: 10px; }
+    .topbar strong { color: var(--text); }
+    .top-actions { display: flex; align-items: center; gap: 8px; }
+    .back-link, .refresh { padding: 8px 11px; color: #c1ccda; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; font-size: 10px; text-decoration: none; cursor: pointer; }
+    .back-link:hover, .refresh:hover { border-color: #536176; }
+    .title-row { align-items: end; margin: 34px 0 19px; }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 32px); font-weight: 650; letter-spacing: -1.1px; }
+    .subtitle { margin-top: 7px; color: #8995a8; font-size: 11px; }
+    .scope-tag { padding: 7px 10px; color: var(--amber); background: #ffbf6910; border: 1px solid #ffbf6930; border-radius: 8px; font-size: 9px; font-weight: 750; letter-spacing: .08em; }
+    .error { display: none; margin-bottom: 12px; padding: 10px 12px; color: #ffbdc3; background: #3b2027; border: 1px solid #683541; border-radius: 9px; font-size: 10px; }
+    .error.show { display: block; }
+    .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px; margin-bottom: 15px; }
+    .metric, .panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+    .metric { min-height: 91px; padding: 14px 15px; }
+    .metric-label { color: #8995a8; font-size: 10px; }
+    .metric-value { margin-top: 11px; overflow: hidden; color: var(--text); font-size: 19px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+    .metric-value.good { color: var(--lime); }
+    .metric-value.warn { color: var(--amber); }
+    .metric-note { margin-top: 4px; color: #748196; font-size: 8px; }
+    .panel { margin-bottom: 14px; }
+    .panel-head { padding: 15px 17px; border-bottom: 1px solid #252e3d; }
+    .panel-title { font-size: 12px; font-weight: 700; }
+    .panel-kicker { margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .panel-body { padding: 16px; }
+    .status-line { display: flex; align-items: center; gap: 7px; color: #9aa8bb; font-size: 9px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: #657187; }
+    .dot.good { background: var(--lime); box-shadow: 0 0 12px #c6f37988; }
+    .dot.warn { background: var(--amber); }
+    .stage-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+    .stage { min-width: 0; padding: 13px; background: #111823; border: 1px solid #293445; border-radius: 11px; }
+    .stage-top { align-items: flex-start; }
+    .stage-num { color: #6f7e92; font-size: 8px; letter-spacing: .1em; }
+    .stage-status { padding: 4px 6px; color: #c3cedb; background: #202a39; border-radius: 5px; font-size: 7px; letter-spacing: .05em; }
+    .stage-status.pending { color: var(--amber); background: #ffbf6912; }
+    .stage-status.healthy { color: var(--lime); background: #c6f36a12; }
+    .stage-name { margin-top: 16px; font-size: 10px; font-weight: 700; }
+    .stage-copy { min-height: 30px; margin-top: 5px; color: #8490a3; font-size: 8px; line-height: 1.5; }
+    .two-col { display: grid; grid-template-columns: 1.1fr .9fr; gap: 14px; }
+    .details { display: grid; gap: 0; }
+    .detail-row, .target-row { padding: 10px 0; border-bottom: 1px solid #252e3a; font-size: 9px; }
+    .detail-row:last-child, .target-row:last-child { border-bottom: 0; }
+    .detail-label { color: #8995a8; }
+    .detail-value { color: #dce5ef; text-align: right; }
+    .detail-value.muted { color: var(--muted); }
+    .callout { margin-top: 12px; padding: 11px 12px; color: #bdc9d8; background: #111823; border: 1px solid #293445; border-radius: 9px; font-size: 9px; line-height: 1.6; }
+    .callout strong { color: var(--amber); }
+    .commands { display: grid; gap: 10px; }
+    .command { padding: 11px 12px; color: #dce5ef; background: #0d131b; border: 1px solid #293445; border-radius: 8px; font: 9px/1.7 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+    .command-label { color: #8995a8; font-size: 9px; }
+    .footer { margin-top: 18px; color: #6f7d90; font-size: 8px; line-height: 1.6; }
+    @media (max-width: 1000px) {
+      .app { grid-template-columns: 68px minmax(0, 1fr); }
+      .sidebar { align-items: center; padding-inline: 8px; }
+      .brand { padding: 0; }
+      .brand-copy, .nav-label, .nav-link span:last-child, .sidebar-note { display: none; }
+      .nav-link { justify-content: center; width: 100%; padding-inline: 8px; }
+      .metrics { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .stage-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width: 680px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { padding: 18px 13px 30px; }
+      .title-row { align-items: flex-start; flex-direction: column; margin-top: 25px; }
+      .scope-tag { align-self: flex-start; }
+      .metrics { gap: 8px; }
+      .metric { min-height: 81px; padding: 11px; }
+      .metric-value { font-size: 16px; }
+      .stage-grid, .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">SH</div><div class="brand-copy"><div class="brand-name">SetuHaul</div><div class="brand-sub">Deployment control</div></div></div>
+      <div class="nav-label">Workspace</div>
+      <a class="nav-link" href="/dashboard"><span>◈</span><span>Operations tower</span></a>
+      <a class="nav-link active" href="/deployment"><span>▤</span><span>Deployment</span></a>
+      <div class="sidebar-note">This view reports the app runtime. It does not connect to AWS or inspect live Kubernetes rollouts.</div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div>PLATFORM / <strong>RELEASE CONTROL</strong></div>
+        <div class="top-actions"><a class="back-link" href="/dashboard">← Operations tower</a><button class="refresh" id="refresh" type="button">↻ Refresh status</button></div>
+      </header>
+      <section class="title-row">
+        <div><h1>Deployment control</h1><div class="subtitle">Application health, target configuration, and rollout visibility.</div></div>
+        <span class="scope-tag">ROLLOUT NOT OBSERVED</span>
+      </section>
+      <div class="error" id="error" role="status"></div>
+      <section class="metrics" aria-label="Deployment status">
+        <article class="metric"><div class="metric-label">Application health</div><div class="metric-value" id="health-value">Checking…</div><div class="metric-note">Observed from this service</div></article>
+        <article class="metric"><div class="metric-label">Current runtime</div><div class="metric-value" id="runtime-value">Checking…</div><div class="metric-note" id="runtime-note">Environment detection</div></article>
+        <article class="metric"><div class="metric-label">Target cluster</div><div class="metric-value" id="cluster-value">Not configured</div><div class="metric-note">EKS target name, if supplied</div></article>
+        <article class="metric"><div class="metric-label">Rollout status</div><div class="metric-value warn">Not observed</div><div class="metric-note">No Kubernetes API integration</div></article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Release path</div><div class="panel-kicker">Stages are not marked complete unless this service can verify them.</div></div><div class="status-line"><span class="dot warn"></span>AWS rollout not observed</div></div>
+        <div class="panel-body stage-grid">
+          <article class="stage"><div class="stage-top"><span class="stage-num">01 / IMAGE</span><span class="stage-status pending">NOT OBSERVED</span></div><div class="stage-name">Build &amp; push</div><div class="stage-copy">The ECR build and push run from the deployment script.</div></article>
+          <article class="stage"><div class="stage-top"><span class="stage-num">02 / CLUSTER</span><span class="stage-status pending">NOT OBSERVED</span></div><div class="stage-name">EKS access</div><div class="stage-copy">Requires AWS credentials and an existing cluster name.</div></article>
+          <article class="stage"><div class="stage-top"><span class="stage-num">03 / ROLLOUT</span><span class="stage-status pending">NOT OBSERVED</span></div><div class="stage-name">Kubernetes rollout</div><div class="stage-copy">Use kubectl rollout status to verify deployment completion.</div></article>
+          <article class="stage"><div class="stage-top"><span class="stage-num">04 / SERVICE</span><span class="stage-status healthy" id="service-stage">CHECKING</span></div><div class="stage-name">HTTP health</div><div class="stage-copy">This app's /health response is checked live below.</div></article>
+        </div>
+      </section>
+
+      <div class="two-col">
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title">Runtime details</div><div class="panel-kicker">Information reported by this app instance.</div></div></div>
+          <div class="panel-body details">
+            <div class="detail-row"><span class="detail-label">Database mode</span><span class="detail-value" id="database-value">—</span></div>
+            <div class="detail-row"><span class="detail-label">Pod</span><span class="detail-value muted" id="pod-value">Not reported</span></div>
+            <div class="detail-row"><span class="detail-label">Namespace</span><span class="detail-value muted" id="namespace-value">Not reported</span></div>
+            <div class="detail-row"><span class="detail-label">Live NVIDIA agent</span><span class="detail-value" id="agent-value">—</span></div>
+            <div class="callout"><strong>Honest status:</strong> pod health is not the same as a successful cluster rollout. This app does not query EKS, ECR, PVC binding, or Kubernetes Deployment conditions.</div>
+          </div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><div><div class="panel-title">EKS target profile</div><div class="panel-kicker">Configuration specified by the repository manifests.</div></div></div>
+          <div class="panel-body details">
+            <div class="target-row"><span class="detail-label">Workload</span><span class="detail-value">setuhaul-service · 1 replica</span></div>
+            <div class="target-row"><span class="detail-label">Storage</span><span class="detail-value">EBS gp3 PVC · SQLite</span></div>
+            <div class="target-row"><span class="detail-label">Service exposure</span><span class="detail-value">Private ClusterIP</span></div>
+            <div class="target-row"><span class="detail-label">Rollout strategy</span><span class="detail-value">Recreate</span></div>
+            <div class="callout">Keep a single replica while SQLite is the state store. The target cluster needs the EBS CSI driver and a <code>gp3</code> StorageClass.</div>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel">
+        <div class="panel-head"><div><div class="panel-title">Deploy to an existing EKS cluster</div><div class="panel-kicker">The deploy script builds, pushes, applies manifests, and waits for rollout.</div></div></div>
+        <div class="panel-body commands">
+          <div class="command-label">From the repository root, provide your own AWS region and existing cluster name:</div>
+          <div class="command">export AWS_REGION=&lt;your-region&gt;<br>export EKS_CLUSTER_NAME=&lt;your-existing-cluster&gt;<br>./scripts/deploy-eks.sh</div>
+          <div class="status-line"><span class="dot warn"></span>This dashboard does not trigger deployment or create AWS resources.</div>
+        </div>
+      </section>
+      <footer class="footer">Status refreshed at <span id="updated-at">—</span>. For rollout events, PVC state, and pod readiness, use authenticated AWS CLI/kubectl access and follow <code>docs/deploy_eks.md</code>.</footer>
+    </main>
+  </div>
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    async function refreshStatus() {
+      const error = $("#error");
+      try {
+        const response = await fetch("/deployment/status", {cache: "no-store"});
+        const status = await response.json();
+        if (!response.ok) throw new Error(status.error || `Status API returned ${response.status}`);
+        $("#health-value").textContent = status.health;
+        $("#health-value").classList.toggle("good", status.health === "HEALTHY");
+        $("#runtime-value").textContent = status.runtime;
+        $("#runtime-note").textContent = status.pod_name ? `Pod ${status.pod_name}` : "Environment detected by service";
+        $("#cluster-value").textContent = status.target_cluster || "Not configured";
+        $("#database-value").textContent = status.database_mode;
+        $("#pod-value").textContent = status.pod_name || "Not reported";
+        $("#namespace-value").textContent = status.namespace || "Not reported";
+        $("#agent-value").textContent = status.live_agent ? "Enabled" : "Disabled";
+        $("#service-stage").textContent = status.health === "HEALTHY" ? "HEALTHY" : "UNHEALTHY";
+        $("#service-stage").classList.toggle("healthy", status.health === "HEALTHY");
+        $("#updated-at").textContent = new Date().toLocaleTimeString();
+        error.classList.remove("show");
+      } catch (failure) {
+        error.textContent = `Unable to read deployment status: ${failure.message}`;
+        error.classList.add("show");
+        $("#health-value").textContent = "Unavailable";
+        $("#service-stage").textContent = "UNAVAILABLE";
+        $("#service-stage").classList.remove("healthy");
+      }
+    }
+    $("#refresh").addEventListener("click", refreshStatus);
+    refreshStatus();
+    window.setInterval(refreshStatus, 30000);
+  </script>
+</body>
+</html>

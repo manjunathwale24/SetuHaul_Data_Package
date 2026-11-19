@@ -24,15 +24,18 @@ import threading
 from typing import Any, Callable
 from urllib.parse import parse_qs, unquote, urlparse
 
+from conversation_graph import build_message_graph
 from brief_scenarios import HANDOFF_FIELDS, revise_eta, shipment_card
 from guards import guard_answer, to_minutes
 from nvidia_agents import AgentRole, NVIDIAClientError, ask_agent, load_nvidia_env
 from slot_engine import HOLD_TTL_MIN, HOLDS_SCHEMA, SlotCheck, SlotEngine, hhmm, ts
+from training_agents import AGENTS as TRAINING_AGENTS, respond as training_agent_respond
 
 
 AgentFn = Callable[[AgentRole, dict[str, Any]], dict[str, Any]]
 MAX_OPTIONS = 3
 INACTIVE_SHIPMENTS = ("COMPLETED", "CANCELLED")
+TRAINING_FACILITY_ID = "FAC-JAI-01"
 
 SERVICE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS service_audit_log (
@@ -58,6 +61,7 @@ CREATE TABLE IF NOT EXISTS service_threads (
     pending_text TEXT,
     not_before INTEGER,
     finish_by INTEGER,
+    offered_options TEXT,
     updated_min INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS service_etas (
@@ -76,7 +80,10 @@ CREATE TABLE IF NOT EXISTS service_holds (
     group_key TEXT PRIMARY KEY,
     shipment_id TEXT NOT NULL REFERENCES shipments(shipment_id),
     eta_min INTEGER NOT NULL,
-    created_min INTEGER NOT NULL
+    created_min INTEGER NOT NULL,
+    not_before INTEGER,
+    finish_by INTEGER,
+    eta_id INTEGER
 );
 CREATE TABLE IF NOT EXISTS service_escalations (
     case_id TEXT PRIMARY KEY,
@@ -139,8 +146,30 @@ class Service:
         self.engine = SlotEngine(db_path, seed=not self._is_seeded(db_path))
         self.db = self.engine.db
         self.db.executescript(HOLDS_SCHEMA + SERVICE_SCHEMA)
+        self._ensure_column("service_threads", "offered_options", "TEXT")
+        self._ensure_column("service_holds", "not_before", "INTEGER")
+        self._ensure_column("service_holds", "finish_by", "INTEGER")
+        self._ensure_column("service_holds", "eta_id", "INTEGER")
+        self.db.execute(
+            "UPDATE service_holds SET eta_id=COALESCE((SELECT MAX(eta_id) FROM service_etas"
+            " WHERE service_etas.shipment_id=service_holds.shipment_id"
+            " AND service_etas.reported_min<=service_holds.created_min),0)"
+            " WHERE eta_id IS NULL")
         self.agent = agent
         self.lock = threading.RLock()
+        self.message_graph = build_message_graph(
+            self._process_message,
+            lambda body: self._process_message(body, force_emergency=True),
+            self._is_driver,
+        )
+
+    def _ensure_column(self, table: str, column: str, declaration: str) -> None:
+        columns = {row["name"] for row in self.db.execute(f"PRAGMA table_info({table})")}
+        if column not in columns:
+            self.db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
+
+    def _is_driver(self, sender: str) -> bool:
+        return self.db.execute("SELECT 1 FROM drivers WHERE driver_id=?", (sender,)).fetchone() is not None
 
     @staticmethod
     def _is_seeded(db_path: str) -> bool:
@@ -179,6 +208,10 @@ class Service:
         eta = to_minutes(row["effective_eta_ts"])
         return {"eta": eta, "planning_eta": eta, "confidence": row["eta_confidence"], "not_before": None,
                 "finish_by": None, "source": row["eta_source"]}
+
+    def latest_eta_id(self, sid: str) -> int:
+        row = self.db.execute("SELECT MAX(eta_id) AS eta_id FROM service_etas WHERE shipment_id=?", (sid,)).fetchone()
+        return row["eta_id"] or 0
 
     def options(self, sid: str, eta: int, now: int, *, not_before: int | None = None,
                 finish_by: int | None = None) -> tuple[list[SlotCheck], list[dict[str, Any]]]:
@@ -241,32 +274,37 @@ class Service:
         for key in ("external_id", "sender", "text"):
             if not isinstance(body.get(key), str) or not body[key].strip():
                 raise ApiError(400, f"{key} is required")
+        with self.lock:
+            result = self.message_graph.invoke({"body": body})
+            return 200, result["response"]
+
+    def _process_message(self, body: dict[str, Any], *, force_emergency: bool = False) -> dict[str, Any]:
         now = parse_now(body.get("now"))
         ext, sender, text = body["external_id"], body["sender"].strip(), body["text"].strip()
         thread_id = body.get("thread_id")
-        with self.lock:
-            prior = self.db.execute("SELECT response FROM service_messages WHERE external_id=?", (ext,)).fetchone()
-            if prior:
-                return 200, {**json.loads(prior["response"]), "duplicate": True}
-            self.tick(now)
-            is_driver = self.db.execute("SELECT 1 FROM drivers WHERE driver_id=?", (sender,)).fetchone() is not None
-            contact = self.db.execute("SELECT * FROM facility_contacts WHERE contact_id=?", (sender,)).fetchone()
-            if not is_driver and contact is None and not sender.startswith("FAC-"):
-                raise ApiError(400, f"unknown sender {sender}")
-            thread_key = thread_id or f"DIRECT-{sender}"
-            state = self.db.execute("SELECT * FROM service_threads WHERE thread_key=?", (thread_key,)).fetchone()
-            state = dict(state) if state and state["sender"] == sender else {}
-            if is_driver:
-                response = self._driver_message(now, ext, sender, thread_id, text, state)
-            else:
-                response = self._facility_message(now, ext, sender, thread_id, text, contact)
-            response.update({"external_id": ext, "thread_id": thread_key, "duplicate": False, "holds_created": 0})
-            self.db.execute("INSERT INTO service_messages VALUES (?,?,?,?,?)",
-                            (ext, thread_key, sender, now, json.dumps(response)))
-            self.audit(now, sender, "MESSAGE_PROCESSED",
-                       {"external_id": ext, "thread": thread_key, "status": response["status"],
-                        "shipment_id": response.get("shipment_id")})
-            return 200, response
+        prior = self.db.execute("SELECT response FROM service_messages WHERE external_id=?", (ext,)).fetchone()
+        if prior:
+            return {**json.loads(prior["response"]), "duplicate": True}
+        self.tick(now)
+        is_driver = self._is_driver(sender)
+        contact = self.db.execute("SELECT * FROM facility_contacts WHERE contact_id=?", (sender,)).fetchone()
+        if not is_driver and contact is None and not sender.startswith("FAC-"):
+            raise ApiError(400, f"unknown sender {sender}")
+        thread_key = thread_id or f"DIRECT-{sender}"
+        state = self.db.execute("SELECT * FROM service_threads WHERE thread_key=?", (thread_key,)).fetchone()
+        state = dict(state) if state and state["sender"] == sender else {}
+        if is_driver:
+            response = self._driver_message(
+                now, ext, sender, thread_id, text, state, emergency=force_emergency)
+        else:
+            response = self._facility_message(now, ext, sender, thread_id, text, contact)
+        response.update({"external_id": ext, "thread_id": thread_key, "duplicate": False, "holds_created": 0})
+        self.db.execute("INSERT INTO service_messages VALUES (?,?,?,?,?)",
+                        (ext, thread_key, sender, now, json.dumps(response)))
+        self.audit(now, sender, "MESSAGE_PROCESSED",
+                   {"external_id": ext, "thread": thread_key, "status": response["status"],
+                    "shipment_id": response.get("shipment_id")})
+        return response
 
     def _link(self, sender: str, thread_id: str | None, text: str,
               state: dict[str, Any]) -> tuple[str | None, str, list[dict[str, Any]]]:
@@ -294,14 +332,16 @@ class Service:
     def _save_thread(self, key: str, sender: str, now: int, **fields: Any) -> None:
         self.db.execute(
             "INSERT INTO service_threads(thread_key, sender, shipment_id, awaiting, pending_text, not_before, finish_by,"
-            " updated_min) VALUES (:k,:s,:shipment_id,:awaiting,:pending_text,:not_before,:finish_by,:now)"
+            " offered_options, updated_min)"
+            " VALUES (:k,:s,:shipment_id,:awaiting,:pending_text,:not_before,:finish_by,:offered_options,:now)"
             " ON CONFLICT(thread_key) DO UPDATE SET shipment_id=:shipment_id, awaiting=:awaiting,"
-            " pending_text=:pending_text, not_before=:not_before, finish_by=:finish_by, updated_min=:now",
+            " pending_text=:pending_text, not_before=:not_before, finish_by=:finish_by,"
+            " offered_options=:offered_options, updated_min=:now",
             {"k": key, "s": sender, "now": now, "shipment_id": None, "awaiting": None, "pending_text": None,
-             "not_before": None, "finish_by": None, **fields})
+             "not_before": None, "finish_by": None, "offered_options": None, **fields})
 
     def _driver_message(self, now: int, ext: str, sender: str, thread_id: str | None, text: str,
-                        state: dict[str, Any]) -> dict[str, Any]:
+                        state: dict[str, Any], *, emergency: bool = False) -> dict[str, Any]:
         thread_key = thread_id or f"DIRECT-{sender}"
         sid, linked_by, cands = self._link(sender, thread_id, text, state)
         message = {"thread_id": thread_key, "sender": sender, "text": text, "sent_at": hhmm(now),
@@ -310,6 +350,9 @@ class Service:
         not_before = nb if nb is not None else state.get("not_before")
         finish_by = fb if fb is not None else state.get("finish_by")
         pending = " ".join(filter(None, [state.get("pending_text"), text]))
+
+        if emergency:
+            return self._safety_escalation(now, sender, thread_key, sid, text, cands, linked_by)
 
         if sid is None:
             cards = [shipment_card(self.engine, c["shipment_id"]) for c in cands]
@@ -329,6 +372,11 @@ class Service:
             return {"status": "CLARIFY", "shipment_id": None, "linked_by": linked_by, "missing": ["shipment_id"],
                     "question": question, "ask_whom": ask, "reply": question, "options": [], "escalation": None,
                     "candidates": [c["shipment_id"] for c in cands], "triage": triage}
+
+        selected = self._select_offered_option(
+            now, ext, sender, thread_key, sid, text, state, not_before, finish_by)
+        if selected is not None:
+            return selected
 
         prev = self.latest_eta(sid)
         history = [(prev["eta"], prev["confidence"])]
@@ -363,6 +411,115 @@ class Service:
         result["eta"] = revised
         return result
 
+    def _safety_escalation(self, now: int, sender: str, thread_key: str, sid: str | None, text: str,
+                           candidates: list[dict[str, Any]], linked_by: str) -> dict[str, Any]:
+        record: dict[str, Any]
+        if sid:
+            eta = self.latest_eta(sid)
+            checks = self.engine.check(
+                sid, eta["planning_eta"], now=now, not_before=eta.get("not_before"),
+                finish_by=eta.get("finish_by"))
+            record = self.escalation(sid, eta, checks, now, f"Potential driver safety emergency: {text[:160]}")
+            self.db.execute("INSERT OR REPLACE INTO service_escalations VALUES (?,?,?,?)",
+                            (record["case_id"], sid, now, json.dumps(record)))
+            self.audit(now, sender, "SAFETY_ESCALATED",
+                       {"case_id": record["case_id"], "shipment_id": sid, "reason": record["reason"]})
+        else:
+            case_id = f"SAFETY-{sender}-{now}"
+            record = {"case_id": case_id, "shipment_id": None, "reason": f"Potential driver safety emergency: {text[:160]}",
+                      "candidates": [item["shipment_id"] for item in candidates], "owner": "SetuHaul coordinator",
+                      "channel": "DISPATCH", "delivery_status": "QUEUED"}
+            self.audit(now, sender, "SAFETY_ESCALATED", {"case_id": case_id, "reason": record["reason"]})
+
+        self._save_thread(thread_key, sender, now, shipment_id=sid)
+        reply = ("Safety concern recorded for escalation. Move to a safe location if you can and contact local "
+                 "emergency services and SetuHaul dispatch immediately. Do not proceed to the dock.")
+        payload = {"message": {"sender": sender, "text": text, "sent_at": hhmm(now)},
+                   "linked": shipment_card(self.engine, sid) if sid else None,
+                   "independent_confirmation": []}
+        triage = self.triage(
+            payload, self._answer("ESCALATE", "COORDINATOR", "UNVERIFIED", None, "driver safety emergency"),
+            driver=True)
+        return {"status": "ESCALATED", "shipment_id": sid, "linked_by": linked_by, "options": [],
+                "question": None, "reply": reply, "escalation": record, "triage": triage}
+
+    def _select_offered_option(self, now: int, ext: str, sender: str, thread_key: str, sid: str, text: str,
+                               state: dict[str, Any], not_before: int | None,
+                               finish_by: int | None) -> dict[str, Any] | None:
+        offered = state.get("offered_options")
+        if not offered:
+            return None
+        options = json.loads(offered)
+        match = re.fullmatch(r"\s*(?:option\s*)?([1-3])(?:\s*(?:please|thanks|thank you))?[.!]?\s*",
+                            text, re.IGNORECASE)
+        accepts = re.fullmatch(r"\s*(?:yes|yeah|yep|okay|ok|please)\s*[.!]?\s*", text, re.IGNORECASE)
+        if match:
+            choice = int(match.group(1))
+        elif accepts and len(options) == 1:
+            choice = 1
+        elif accepts:
+            question = f"Which option should I hold? Please reply with a number from 1 to {len(options)}."
+            self._save_thread(thread_key, sender, now, shipment_id=sid, not_before=not_before,
+                              finish_by=finish_by, offered_options=offered,
+                              awaiting="option")
+            return {"status": "CLARIFY", "shipment_id": sid, "options": options, "question": question,
+                    "reply": question, "ask_whom": "DRIVER", "escalation": None}
+        else:
+            return None
+
+        if choice > len(options):
+            question = f"That option wasn't offered. Please choose a number from 1 to {len(options)}."
+            return {"status": "CLARIFY", "shipment_id": sid, "options": options, "question": question,
+                    "reply": question, "ask_whom": "DRIVER", "escalation": None}
+
+        eta = self.latest_eta(sid)
+        if not_before is not None:
+            eta["not_before"] = not_before
+        if finish_by is not None:
+            eta["finish_by"] = finish_by
+        checks, fresh_options = self.options(
+            sid, eta["planning_eta"], now, not_before=eta.get("not_before"), finish_by=eta.get("finish_by"))
+        slot_id = options[choice - 1]["slot_id"]
+        current = next((check for check in checks if check.slot_ids[0] == slot_id and check.feasible), None)
+        if current is None:
+            refreshed = self._plan(
+                now, sid, eta, "previously offered option", {"message": {"thread_id": thread_key,
+                "sender": sender, "text": text}, "linked": shipment_card(self.engine, sid),
+                "independent_confirmation": []}, actor=sender, persist=True)
+            refreshed["reply"] = "That option is no longer available. " + refreshed["reply"]
+            return refreshed
+
+        ok, group = self.engine.hold(
+            sid, current, eta["planning_eta"], now=now,
+            not_before=eta.get("not_before"), finish_by=eta.get("finish_by"))
+        if not ok:
+            refreshed = self._plan(
+                now, sid, eta, "previously offered option", {"message": {"thread_id": thread_key,
+                "sender": sender, "text": text}, "linked": shipment_card(self.engine, sid),
+                "independent_confirmation": []}, actor=sender, persist=True)
+            refreshed["reply"] = "That option was taken before I could hold it. " + refreshed["reply"]
+            return refreshed
+
+        self.db.execute(
+            "INSERT INTO service_holds(group_key, shipment_id, eta_min, created_min, not_before, finish_by, eta_id)"
+            " VALUES (?,?,?,?,?,?,?)",
+            (group, sid, eta["planning_eta"], now, eta.get("not_before"), eta.get("finish_by"),
+             self.latest_eta_id(sid)))
+        self.audit(now, sender, "HOLD_CREATED",
+                   {"group": group, "shipment_id": sid, "slot_ids": current.slot_ids, "source": "driver option"})
+        status, detail = self.engine.request(sid, group, now=now, request_key=f"driver-message:{ext}")
+        if status != "REQUESTED":
+            raise ApiError(409, f"could not request selected option: {detail}", status=status)
+        self.audit(now, sender, "HOLD_REQUESTED",
+                   {"group": group, "shipment_id": sid, "request_key": f"driver-message:{ext}"})
+        self._save_thread(thread_key, sender, now, shipment_id=sid, not_before=eta.get("not_before"),
+                          finish_by=eta.get("finish_by"))
+        reply = (f"Option {choice} is held at {current.dock} {hhmm(current.start)} and marked as requested for "
+                 "warehouse approval. It is not confirmed until the warehouse accepts.")
+        return {"status": "REQUESTED", "shipment_id": sid, "group": group, "slot_ids": current.slot_ids,
+                "dock": current.dock, "start": hhmm(current.start), "unload_ends": hhmm(current.end),
+                "options": fresh_options, "question": None, "reply": reply, "escalation": None}
+
     def _plan(self, now: int, sid: str, eta: dict[str, Any], linked_by: str, payload: dict[str, Any], *,
               actor: str, persist: bool) -> dict[str, Any]:
         checks, opts = self.options(sid, eta["planning_eta"], now, not_before=eta.get("not_before"),
@@ -372,6 +529,12 @@ class Service:
                 f"{o['option']}) {o['dock']} {o['start']} (unload done {o['unload_ends']})" for o in opts)
                 + ". Your current booking stays as it is until you pick one; reply with the option number and I'll "
                   f"hold it for {HOLD_TTL_MIN} minutes while I ask the warehouse.")
+            if persist:
+                message = payload.get("message", {})
+                self._save_thread(
+                    message.get("thread_id", f"DIRECT-{actor}"), message.get("sender", actor), now,
+                    shipment_id=sid, not_before=eta.get("not_before"), finish_by=eta.get("finish_by"),
+                    offered_options=json.dumps(opts))
             triage = self.triage(payload, self._answer("PROPOSE", "NONE", "UNVERIFIED", None,
                                                        "shipment and clock-time ETA known"), driver=True)
             return {"status": "OPTIONS", "shipment_id": sid, "linked_by": linked_by, "options": opts,
@@ -380,13 +543,16 @@ class Service:
         record = self.escalation(sid, eta, checks, now,
                                  f"No feasible slot for planning ETA {hhmm(eta['planning_eta'])}")
         if persist:
+            message = payload.get("message", {})
+            self._save_thread(message.get("thread_id", f"DIRECT-{actor}"), message.get("sender", actor), now,
+                              shipment_id=sid, not_before=eta.get("not_before"), finish_by=eta.get("finish_by"))
             self.db.execute("INSERT OR IGNORE INTO service_escalations VALUES (?,?,?,?)",
                             (record["case_id"], sid, now, json.dumps(record)))
             self.audit(now, actor, "ESCALATED", {"case_id": record["case_id"], "shipment_id": sid,
                                                  "owner": record["owner"], "channel": record["channel"]})
-        reply = (f"I can't find a safe slot for your load from {hhmm(eta['planning_eta'])}. I've passed this to "
-                 f"{record['owner'].split(' (')[0]} with your details; they will contact you before "
-                 f"{record['deadline']}. Please don't come to the gate before you hear from them.")
+        reply = (f"I can't find a safe slot for your load from {hhmm(eta['planning_eta'])}. I've recorded an "
+                 f"escalation for {record['owner'].split(' (')[0]}. Contact SetuHaul dispatch to coordinate "
+                 f"before {record['deadline']}; please don't come to the gate before a coordinator confirms.")
         triage = self.triage(payload, self._answer("ESCALATE", "COORDINATOR", "UNVERIFIED", None,
                                                    "no feasible slot"), driver=True)
         return {"status": "ESCALATED", "shipment_id": sid, "linked_by": linked_by, "options": [],
@@ -461,11 +627,15 @@ class Service:
                 self.audit(now, actor, "HOLD_REJECTED", {"shipment_id": sid, "slot_id": slot_id, "reasons": reasons})
                 raise ApiError(409, "slot not available", status="REJECTED", reasons=reasons)
             replaced = self._held_slots(sid)
-            ok, detail = self.engine.hold(sid, option, planning, now=now)
+            ok, detail = self.engine.hold(
+                sid, option, planning, now=now, not_before=eta.get("not_before"), finish_by=eta.get("finish_by"))
             if not ok:
                 self.audit(now, actor, "HOLD_REJECTED", {"shipment_id": sid, "slot_id": slot_id, "reasons": [detail]})
                 raise ApiError(409, "slot not available", status="REJECTED", reasons=[detail])
-            self.db.execute("INSERT OR REPLACE INTO service_holds VALUES (?,?,?,?)", (detail, sid, planning, now))
+            self.db.execute(
+                "INSERT OR REPLACE INTO service_holds(group_key, shipment_id, eta_min, created_min,"
+                " not_before, finish_by, eta_id) VALUES (?,?,?,?,?,?,?)",
+                (detail, sid, planning, now, eta.get("not_before"), eta.get("finish_by"), self.latest_eta_id(sid)))
             self.audit(now, actor, "HOLD_CREATED", {"group": detail, "shipment_id": sid, "slot_ids": option.slot_ids,
                                                     "expires": hhmm(now + HOLD_TTL_MIN), "replaced": replaced})
             return 200, {"status": "HELD", "group": detail, "shipment_id": sid, "slot_ids": option.slot_ids,
@@ -491,6 +661,8 @@ class Service:
             status, detail = self.engine.request(sid, group, now=now, request_key=key)
             if status == "DUPLICATE":
                 return 200, {"status": status, "group": group, "detail": detail}
+            if status == "KEY_REUSED":
+                raise ApiError(409, detail, status=status)
             self.audit(now, body.get("actor", "DRIVER"), f"HOLD_{status}",
                        {"group": group, "shipment_id": sid, "request_key": key, "detail": detail})
             if status == "STALE":
@@ -514,11 +686,25 @@ class Service:
                                       " AND is_current=1", (sid, first)).fetchone()
                 return 200, {"status": "ALREADY_CONFIRMED", "group": group,
                              "appointment_id": apt["appointment_id"] if apt else None}
-            meta = self.db.execute("SELECT eta_min FROM service_holds WHERE group_key=?", (group,)).fetchone()
-            eta = meta["eta_min"] if meta else self.latest_eta(sid)["planning_eta"]
+            meta = self.db.execute("SELECT * FROM service_holds WHERE group_key=?", (group,)).fetchone()
+            latest = self.db.execute(
+                "SELECT planning_eta_min, not_before, finish_by FROM service_etas"
+                " WHERE shipment_id=? AND eta_id>? ORDER BY eta_id DESC LIMIT 1",
+                (sid, meta["eta_id"] if meta else 0)).fetchone()
+            current_eta = self.latest_eta(sid)
+            if latest:
+                eta = latest["planning_eta_min"]
+                not_before, finish_by = latest["not_before"], latest["finish_by"]
+            elif meta:
+                eta = meta["eta_min"]
+                not_before, finish_by = meta["not_before"], meta["finish_by"]
+            else:
+                eta = current_eta["planning_eta"]
+                not_before, finish_by = current_eta.get("not_before"), current_eta.get("finish_by")
             old = self.db.execute("SELECT appointment_id, slot_id FROM appointments WHERE shipment_id=? AND is_current=1",
                                   (sid,)).fetchone()
-            ok, detail = self.engine.confirm(sid, group, eta, now=now, warehouse_ref=ref)
+            ok, detail = self.engine.confirm(
+                sid, group, eta, now=now, warehouse_ref=ref, not_before=not_before, finish_by=finish_by)
             if not ok:
                 self.audit(now, actor, "CONFIRM_REJECTED", {"group": group, "shipment_id": sid, "reason": detail})
                 raise ApiError(409, "confirmation rejected after re-check", status="REJECTED", reasons=[detail])
@@ -574,7 +760,9 @@ class Service:
     def integrity(self) -> tuple[int, dict[str, Any]]:
         with self.lock:
             conflicts = self.engine.conflicts()
-            return 200, {"ok": not any(conflicts.values()), "conflicts": conflicts}
+            blocking = {key: value for key, value in conflicts.items()
+                        if key != "preexisting_appointment_overlaps"}
+            return 200, {"ok": not any(blocking.values()), "conflicts": conflicts}
 
     def audit_log(self, query: dict[str, str]) -> tuple[int, dict[str, Any]]:
         limit = int(query.get("limit", "200"))
@@ -588,12 +776,156 @@ class Service:
     def health(self) -> tuple[int, dict[str, Any]]:
         return 200, {"status": "ok", "db": self.db_path, "live_agent": self.agent is not None}
 
+    def deployment_status(self) -> tuple[int, dict[str, Any]]:
+        health = self.health()[1]
+        return 200, {
+            "health": "HEALTHY" if health["status"] == "ok" else "UNHEALTHY",
+            "runtime": "Kubernetes" if os.environ.get("KUBERNETES_SERVICE_HOST") else "Local",
+            "pod_name": os.environ.get("POD_NAME"),
+            "namespace": os.environ.get("POD_NAMESPACE"),
+            "target_cluster": os.environ.get("EKS_CLUSTER_NAME"),
+            "database_mode": "File-backed SQLite" if health["db"] != ":memory:" else "In-memory SQLite",
+            "live_agent": health["live_agent"],
+            "rollout_status": "NOT_OBSERVED",
+            "cluster_api_status": "NOT_CONNECTED",
+        }
+
+    def activity(self, query: dict[str, str]) -> tuple[int, dict[str, Any]]:
+        now = parse_now(query.get("now", "10:30"))
+        with self.lock:
+            board = self.engine.board(now)
+            docks = []
+            for dock in self.engine.docks():
+                slots = [slot for slot in self.engine.slots() if slot["dock_id"] == dock["dock_id"]]
+                events = self.engine.dock_events(dock["dock_id"])
+                docks.append({
+                    "dock": dock["dock_code"],
+                    "type": dock["dock_type"],
+                    "slots": [{
+                        "slot_id": slot["slot_id"],
+                        "start": to_minutes(slot["slot_start_ts"]),
+                        "end": to_minutes(slot["slot_end_ts"]),
+                        "state": board[slot["slot_id"]][0].rstrip("!"),
+                        "shipment_id": board[slot["slot_id"]][1] or None,
+                    } for slot in slots],
+                    "events": [{
+                        "type": event["event_type"],
+                        "start": event["event_start_ts"][11:16],
+                        "end": event["event_end_ts"][11:16] if event["event_end_ts"] else None,
+                        "reason": event["reason"],
+                    } for event in events],
+                })
+
+            shipments = []
+            for row in self.db.execute(
+                """SELECT s.shipment_id, s.order_reference, s.driver_id, s.current_status, s.priority_code,
+                          s.destination_facility_id, s.required_dock_type, s.temperature_control_required,
+                          s.expected_unload_min, a.appointment_id, a.appointment_status, a.slot_id,
+                          d.dock_code, sl.slot_start_ts
+                   FROM shipments s
+                   LEFT JOIN appointments a ON a.shipment_id=s.shipment_id AND a.is_current=1
+                     AND a.appointment_status IN ('PENDING_CONFIRMATION','CONFIRMED','IN_PROGRESS')
+                   LEFT JOIN appointment_slots sl ON sl.slot_id=a.slot_id
+                   LEFT JOIN docks d ON d.dock_id=sl.dock_id
+                   WHERE s.destination_facility_id=? AND s.current_status NOT IN ('COMPLETED','CANCELLED')
+                   ORDER BY CASE s.priority_code WHEN 'CRITICAL' THEN 0 WHEN 'HIGH' THEN 1 ELSE 2 END,
+                            s.shipment_id""", (TRAINING_FACILITY_ID,)
+            ):
+                shipment = dict(row)
+                eta = self.latest_eta(shipment["shipment_id"])
+                shipment["eta"] = hhmm(eta["planning_eta"])
+                shipment["eta_confidence"] = eta["confidence"]
+                shipment["slot_start"] = (
+                    shipment["slot_start_ts"][11:16] if shipment["slot_start_ts"] else None)
+                shipment.pop("slot_start_ts", None)
+                shipments.append(shipment)
+
+            holds = [dict(row) for row in self.db.execute(
+                """SELECT h.group_key, h.shipment_id, h.state, h.created_min, h.expires_min,
+                          s.driver_id, s.priority_code, GROUP_CONCAT(h.slot_id) AS slot_ids
+                   FROM slot_holds h JOIN shipments s USING (shipment_id)
+                   WHERE h.state IN ('HELD','REQUESTED')
+                   GROUP BY h.group_key ORDER BY h.created_min DESC""")]
+            for hold in holds:
+                hold["created_at"] = hhmm(hold.pop("created_min"))
+                hold["expires_at"] = hhmm(hold.pop("expires_min")) if hold["expires_min"] is not None else None
+                hold["slot_ids"] = (hold["slot_ids"] or "").split(",")
+
+            activities = []
+            for row in self.db.execute(
+                "SELECT audit_id, sim_ts, actor, action, payload FROM service_audit_log"
+                " ORDER BY audit_id DESC LIMIT 20"):
+                item = dict(row)
+                item["time"] = item.pop("sim_ts")
+                item["payload"] = json.loads(item["payload"])
+                activities.append(item)
+            for row in self.db.execute(
+                """SELECT m.chat_message_id, m.message_ts, m.sender_type, m.sender_reference,
+                          m.parsed_intent, m.message_text, t.shipment_id
+                   FROM chat_messages m JOIN chat_threads t USING (thread_id)
+                   WHERE m.is_duplicate=0 AND substr(m.message_ts, 12, 5)<=?
+                   ORDER BY m.message_ts DESC LIMIT 20""", (hhmm(now),)):
+                activities.append({
+                    "audit_id": f"seed-{row['chat_message_id']}",
+                    "time": row["message_ts"][11:16],
+                    "actor": row["sender_reference"] or row["sender_type"],
+                    "action": row["parsed_intent"] or row["sender_type"],
+                    "source": "seed transcript",
+                    "payload": {"shipment_id": row["shipment_id"], "summary": row["message_text"]},
+                })
+            activities.sort(key=lambda item: (item["time"], str(item["audit_id"])), reverse=True)
+
+            counts = {
+                "inbound": len(shipments),
+                "in_transit": sum(item["current_status"] == "IN_TRANSIT" for item in shipments),
+                "at_gate": sum(item["current_status"] in {"AT_GATE", "WAITING", "IN_DOCK"} for item in shipments),
+                "booked": sum(item["appointment_status"] in {"CONFIRMED", "IN_PROGRESS"} for item in shipments),
+                "pending": sum(item["appointment_status"] == "PENDING_CONFIRMATION" for item in shipments),
+                "alerts": sum(item["priority_code"] == "CRITICAL" for item in shipments)
+                    + sum(item["state"] == "BLOCKED" for dock in docks for item in dock["slots"]),
+            }
+            return 200, {
+                "now": hhmm(now),
+                "facility": "FAC-JAI-01",
+                "mode": "SIMULATION",
+                "counts": counts,
+                "docks": docks,
+                "shipments": shipments,
+                "holds": holds,
+                "activity": activities,
+                "training_agents": TRAINING_AGENTS,
+            }
+
+    def training_agent(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        role = body.get("role")
+        agent_id = body.get("agent_id")
+        if agent_id is None:
+            agent_id = (
+                {"driver": "driver_01", "facility": "facility"}.get(role, role)
+                if isinstance(role, str) else role
+            )
+        message = body.get("message")
+        if not isinstance(agent_id, str) or agent_id not in TRAINING_AGENTS:
+            raise ApiError(400, "agent_id must identify one of the four drivers or the facility agent")
+        profile = TRAINING_AGENTS[agent_id]
+        if role is not None and (
+            not isinstance(role, str) or role not in {"driver", "facility"} or role != profile["role"]
+        ):
+            raise ApiError(400, "role must match the selected training agent")
+        if not isinstance(message, str) or not message.strip():
+            raise ApiError(400, "message is required")
+        try:
+            return 200, training_agent_respond(agent_id, message)
+        except ValueError as exc:
+            raise ApiError(400, str(exc)) from exc
+
 
 # ---------------------------------------------------------------------------
 # HTTP layer
 # ---------------------------------------------------------------------------
 ROUTES = [
     ("POST", re.compile(r"/messages"), lambda s, m, b, q: s.post_message(b)),
+    ("POST", re.compile(r"/training/agent"), lambda s, m, b, q: s.training_agent(b)),
     ("POST", re.compile(r"/holds"), lambda s, m, b, q: s.post_hold(b)),
     ("POST", re.compile(r"/holds/([^/]+)/request"), lambda s, m, b, q: s.request_hold(m[0], b)),
     ("POST", re.compile(r"/holds/([^/]+)/confirm"), lambda s, m, b, q: s.confirm_hold(m[0], b)),
@@ -602,7 +934,9 @@ ROUTES = [
     ("GET", re.compile(r"/shipments/([^/]+)/options"), lambda s, m, b, q: s.get_options(m[0], q)),
     ("GET", re.compile(r"/board"), lambda s, m, b, q: s.board(q)),
     ("GET", re.compile(r"/health"), lambda s, m, b, q: s.health()),
+    ("GET", re.compile(r"/deployment/status"), lambda s, m, b, q: s.deployment_status()),
     ("GET", re.compile(r"/integrity"), lambda s, m, b, q: s.integrity()),
+    ("GET", re.compile(r"/activity"), lambda s, m, b, q: s.activity(q)),
     ("GET", re.compile(r"/audit"), lambda s, m, b, q: s.audit_log(q)),
 ]
 
@@ -610,6 +944,24 @@ ROUTES = [
 def make_handler(service: Service) -> type[BaseHTTPRequestHandler]:
     class Handler(BaseHTTPRequestHandler):
         server_version = "SetuHaulService/1.0"
+
+        def _serve_dashboard(self) -> None:
+            page = Path(__file__).with_name("dashboard.html").read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(page)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(page)
+
+        def _serve_deployment_dashboard(self) -> None:
+            page = Path(__file__).with_name("deployment_dashboard.html").read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(page)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(page)
 
         def _dispatch(self, method: str) -> None:
             url = urlparse(self.path)
@@ -648,6 +1000,19 @@ def make_handler(service: Service) -> type[BaseHTTPRequestHandler]:
             self.wfile.write(data)
 
         def do_GET(self) -> None:  # noqa: N802
+            path = urlparse(self.path).path
+            if path in {"/", "/dashboard"}:
+                try:
+                    self._serve_dashboard()
+                except OSError:
+                    self.send_error(500, "dashboard asset unavailable")
+                return
+            if path == "/deployment":
+                try:
+                    self._serve_deployment_dashboard()
+                except OSError:
+                    self.send_error(500, "deployment dashboard asset unavailable")
+                return
             self._dispatch("GET")
 
         def do_POST(self) -> None:  # noqa: N802

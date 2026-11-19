@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: setuhaul-service
+  namespace: setuhaul
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: setuhaul-service
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

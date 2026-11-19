@@ -1,6 +1,6 @@
 # SetuHaul driver-exception service — Implementation Plan
 
-Baseline (from `docs/spec.md`): deterministic `slot_engine.py` with re-checked hold/request/confirm,
+Baseline when this plan was drafted: deterministic `slot_engine.py` with re-checked hold/request/confirm,
 guards, three LLM roles, scripted brief run at 92.6/100 (accuracy 85.2 %, 0 conflicts, escalation
 completeness 100 %), sandbox 80.7, stress suite 100/100. Gaps: agent advice does not drive the brief
 flow, Triage over-asks the facility, holds are not persisted in the real DB, no service/channel,
@@ -11,14 +11,20 @@ shadow pilot; P1 = needed for assisted operation; P2 = scale.
 
 ## Summary
 
+> **Implementation update (2026-11-19):** The message service is implemented and now routes driver safety
+> reports through LangGraph, supports persisted option selection, rechecks ETA/constraints when confirming,
+> and binds request idempotency keys to their hold inside a transaction. The new EKS artifacts target an
+> existing cluster only. The remaining items in the original plan below are not implied to be complete by
+> this update.
+
 | ID | Item | Pri | Effort | Status | Depends on |
 |---|---|---|---|---|---|
 | P0.1 | Agent decisions drive the flow (closed-loop brief run) | P0 | M | planned | — |
 | P0.2 | Measured Triage prompt fix | P0 | S | planned | P0.1 (for measurement) |
 | P0.3 | Role-correct verification + ID normalisation in guards | P0 | S | planned | — |
 | P0.4 | Single feasibility source for agents | P0 | S | planned | — |
-| P0.5 | Engine hardening (request race, release_hold, atomic idempotency) | P0 | S | planned | — |
-| P1.1 | `service.py` stdlib HTTP service: hold/request/confirm/release | P1 | M | **in progress (separate agent)** | P0.5 |
+| P0.5 | Engine hardening (request race, release_hold, atomic idempotency) | P0 | S | **partially implemented** | — |
+| P1.1 | `service.py` stdlib HTTP service: hold/request/confirm/release | P1 | M | **implemented (prototype)** | P0.5 |
 | P1.2 | WhatsApp-style inbound webhook + outbound sender | P1 | M | planned | P1.1 |
 | P1.3 | Persist holds/idempotency/audit in the real DB (migration) | P1 | M | planned | P0.5 |
 | P1.4 | Coordinator console | P1 | L | planned | P1.1, P1.3 |

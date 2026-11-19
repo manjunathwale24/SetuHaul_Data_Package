@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10141d">
+  <title>SetuHaul · Operations Tower</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0c1017;
+      --panel: #151b26;
+      --panel-2: #1a2230;
+      --line: #283243;
+      --muted: #8490a3;
+      --text: #edf2f7;
+      --lime: #c6f36a;
+      --cyan: #64d9e7;
+      --amber: #ffbf69;
+      --red: #ff7583;
+      --violet: #ad94ff;
+      --radius: 15px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--text); background: var(--bg); }
+    button, select, input { font: inherit; }
+    button { color: inherit; }
+    .app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+    .sidebar {
+      display: flex; flex-direction: column; gap: 30px; padding: 25px 15px 18px;
+      background: #10151e; border-right: 1px solid #222b38;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; padding: 0 9px; }
+    .brand-mark {
+      width: 35px; height: 35px; display: grid; place-items: center; border-radius: 11px;
+      color: #141a12; background: var(--lime); font-size: 15px; font-weight: 900; letter-spacing: -2px;
+    }
+    .brand-name { font-size: 14px; font-weight: 750; letter-spacing: -.3px; }
+    .brand-sub { margin-top: 3px; color: var(--muted); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    .nav-label { padding: 0 11px; color: #667286; font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+    .nav { display: grid; gap: 5px; margin-top: -22px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 11px; padding: 11px 12px; color: #8995a8;
+      border: 1px solid transparent; border-radius: 10px; font-size: 12px; text-decoration: none;
+    }
+    .nav-item.active { color: var(--lime); background: #c6f36a12; border-color: #c6f36a20; }
+    .nav-icon { width: 17px; text-align: center; font-size: 15px; }
+    .nav-count { margin-left: auto; color: var(--amber); font-size: 10px; }
+    .sidebar-bottom { margin-top: auto; }
+    .facility-mini { padding: 13px; background: #171f2b; border: 1px solid var(--line); border-radius: 12px; }
+    .facility-mini-title { color: var(--muted); font-size: 9px; letter-spacing: .13em; text-transform: uppercase; }
+    .facility-name { margin-top: 8px; font-size: 12px; font-weight: 700; }
+    .facility-status { display: flex; align-items: center; gap: 7px; margin-top: 8px; color: #9ba8b9; font-size: 10px; }
+    .pulse-dot { width: 7px; height: 7px; display: inline-block; border-radius: 50%; background: var(--lime); box-shadow: 0 0 12px #c6f37988; }
+    .user-chip { display: flex; align-items: center; gap: 10px; padding: 16px 5px 0; }
+    .avatar { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 50%; color: #d3c8ff; background: #6a57a7; font-size: 10px; font-weight: 800; }
+    .user-name { font-size: 10px; font-weight: 700; }
+    .user-role { margin-top: 3px; color: var(--muted); font-size: 9px; }
+
+    .main { min-width: 0; padding: 25px 29px 40px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .breadcrumb { color: #8d99aa; font-size: 11px; }
+    .breadcrumb strong { color: #e9edf4; font-weight: 600; }
+    .top-actions { display: flex; align-items: center; gap: 9px; }
+    .sim-chip, .clock-chip, .icon-button {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid var(--line);
+      border-radius: 9px; background: var(--panel); color: #b7c1d0; font-size: 10px;
+    }
+    .deployment-link { padding: 8px 10px; color: var(--cyan); border: 1px solid #64d9e733; border-radius: 9px; background: #64d9e70b; font-size: 9px; text-decoration: none; white-space: nowrap; }
+    .sim-chip { color: var(--amber); background: #ffbf6910; border-color: #ffbf6930; letter-spacing: .08em; font-weight: 750; }
+    .clock-chip { color: #dce5ef; font-variant-numeric: tabular-nums; }
+    .icon-button { cursor: pointer; font-size: 13px; }
+    .icon-button:hover { border-color: #536176; }
+    .title-row { display: flex; align-items: end; justify-content: space-between; gap: 18px; margin: 31px 0 19px; }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 31px); font-weight: 650; letter-spacing: -1.1px; }
+    .page-subtitle { margin-top: 7px; color: #8995a8; font-size: 11px; }
+    .date-control { color: #aab4c3; font-size: 10px; }
+    .date-control select {
+      margin-left: 8px; padding: 8px 29px 8px 10px; color: #d6deea; background: var(--panel);
+      border: 1px solid var(--line); border-radius: 8px; outline: none;
+    }
+    .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 11px; margin-bottom: 15px; }
+    .stat {
+      min-height: 89px; padding: 14px 15px; background: var(--panel); border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .stat-label { color: #8995a8; font-size: 10px; }
+    .stat-value { display: flex; align-items: baseline; gap: 7px; margin-top: 10px; font-size: 24px; font-weight: 650; letter-spacing: -.7px; }
+    .stat-note { color: #768396; font-size: 9px; font-weight: 500; letter-spacing: 0; }
+    .stat.alert .stat-value { color: var(--amber); }
+    .stat.live .stat-value { color: var(--lime); }
+
+    .tower-grid { display: grid; grid-template-columns: minmax(0, 1fr) 310px; gap: 14px; align-items: stretch; }
+    .panel { min-width: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 15px 16px; border-bottom: 1px solid #252e3d; }
+    .panel-title { font-size: 12px; font-weight: 700; }
+    .panel-kicker { margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .panel-action { color: #a8b4c6; background: transparent; border: 0; cursor: pointer; font-size: 10px; }
+    .live-badge { display: inline-flex; align-items: center; gap: 6px; color: var(--lime); font-size: 9px; }
+    .board-legend { display: flex; flex-wrap: wrap; gap: 11px; padding: 10px 15px 3px; color: #a3aebe; font-size: 9px; }
+    .legend-item { display: inline-flex; align-items: center; gap: 5px; }
+    .legend-swatch { width: 8px; height: 8px; border-radius: 3px; background: #445064; }
+    .legend-swatch.booked { background: var(--cyan); }
+    .legend-swatch.pending { background: var(--amber); }
+    .legend-swatch.blocked { background: #783f52; }
+    .legend-swatch.free { background: #293545; border: 1px solid #44536a; }
+    .timeline { padding: 11px 14px 14px; overflow-x: auto; }
+    .time-ruler, .dock-row { min-width: 840px; display: grid; grid-template-columns: 48px repeat(28, minmax(18px, 1fr)); gap: 3px; }
+    .time-ruler { margin-bottom: 7px; color: #748196; font-size: 8px; }
+    .time-ruler span { text-align: center; }
+    .dock-row { align-items: center; margin: 5px 0; }
+    .dock-label { color: #dce4ef; font-size: 10px; font-weight: 750; }
+    .dock-label small { display: block; margin-top: 3px; color: #778498; font-size: 8px; font-weight: 500; }
+    .slot {
+      position: relative; min-width: 0; height: 31px; padding: 0; border: 1px solid #344155;
+      border-radius: 6px; background: #222c3a; color: #dce7f1; cursor: default;
+    }
+    .slot-gap { height: 31px; }
+    .slot.free { background: #202a37; border-color: #303c4e; }
+    .slot.booked, .slot.wip { color: #10232b; background: var(--cyan); border-color: #64d9e7; }
+    .slot.pending, .slot.requested, .slot.held { color: #302312; background: var(--amber); border-color: #ffbf69; }
+    .slot.blocked, .slot.overrun { background: repeating-linear-gradient(135deg,#472d3a,#472d3a 5px,#3a2935 5px,#3a2935 10px); border-color: #754656; }
+    .slot.blocked::after { content: "×"; color: #ff9aab; }
+    .slot.booked::after, .slot.wip::after { content: "●"; font-size: 8px; }
+    .slot.pending::after, .slot.requested::after, .slot.held::after { content: "◷"; font-size: 13px; }
+    .slot.free::after { content: ""; }
+    .slot:hover { outline: 1px solid white; outline-offset: 1px; }
+    .board-note { margin: 4px 15px 13px; color: #788599; font-size: 9px; }
+
+    .feed-panel { display: flex; flex-direction: column; }
+    .feed-list { display: grid; gap: 0; padding: 4px 15px 12px; }
+    .feed-item { display: grid; grid-template-columns: 20px 1fr; gap: 9px; padding: 11px 0; border-bottom: 1px solid #252e3a; }
+    .feed-item:last-child { border-bottom: 0; }
+    .feed-icon { width: 19px; height: 19px; display: grid; place-items: center; border-radius: 7px; background: #253044; color: var(--cyan); font-size: 9px; }
+    .feed-icon.alert { color: var(--amber); background: #382e26; }
+    .feed-icon.good { color: var(--lime); background: #293426; }
+    .feed-text { color: #d4dce7; font-size: 9px; line-height: 1.5; }
+    .feed-meta { display: flex; gap: 8px; margin-top: 4px; color: #748196; font-size: 8px; }
+    .empty-feed { padding: 20px 4px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+
+    .manifest { margin-top: 14px; }
+    .manifest-controls { display: flex; align-items: center; gap: 9px; }
+    .search {
+      width: 150px; padding: 7px 9px; color: var(--text); background: #101720; border: 1px solid var(--line);
+      border-radius: 7px; font-size: 9px; outline: none;
+    }
+    .manifest-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th { padding: 10px 13px; color: #7f8ba0; background: #131923; font-size: 8px; font-weight: 700; letter-spacing: .1em; text-align: left; text-transform: uppercase; }
+    td { padding: 10px 13px; border-top: 1px solid #242d3a; color: #c9d2de; font-size: 9px; white-space: nowrap; }
+    .shipment-id { color: #e7edf5; font-weight: 700; }
+    .priority { display: inline-flex; align-items: center; gap: 5px; }
+    .priority i { width: 6px; height: 6px; border-radius: 50%; background: #93a2b7; }
+    .priority.CRITICAL i { background: var(--red); }
+    .priority.HIGH i { background: var(--amber); }
+    .status-tag { padding: 4px 7px; border: 1px solid #374357; border-radius: 20px; color: #b8c5d5; font-size: 8px; }
+    .status-tag.IN_DOCK { color: var(--cyan); border-color: #64d9e74d; background: #64d9e710; }
+    .status-tag.WAITING, .status-tag.AT_GATE { color: var(--amber); border-color: #ffbf694d; background: #ffbf6910; }
+    .status-tag.PENDING_CONFIRMATION { color: var(--violet); border-color: #ad94ff4d; background: #ad94ff10; }
+    .status-tag.CONFIRMED { color: var(--lime); border-color: #c6f36a4d; background: #c6f36a10; }
+    .empty-row { padding: 24px; color: var(--muted); text-align: center; }
+
+    .training { margin-top: 15px; }
+    .training-head-copy { color: #8190a4; font-size: 9px; }
+    .training-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 13px; }
+    .agent-card { min-width: 0; overflow: hidden; background: #111823; border: 1px solid #293445; border-radius: 12px; }
+    .agent-head { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid #252e3a; }
+    .agent-avatar { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; color: var(--cyan); background: #1d3440; font-size: 12px; }
+    .agent-card.facility .agent-avatar { color: var(--violet); background: #302847; }
+    .agent-name { font-size: 10px; font-weight: 700; }
+    .agent-scenario { margin-top: 3px; color: #7e8ba0; font-size: 8px; }
+    .role-tag { margin-left: auto; padding: 4px 6px; color: #91a0b4; background: #1b2533; border-radius: 5px; font-size: 7px; letter-spacing: .07em; }
+    .chat-log { display: flex; flex-direction: column; gap: 8px; height: 117px; padding: 11px; overflow-y: auto; }
+    .bubble { max-width: 90%; padding: 8px 9px; color: #c9d3e1; background: #1c2736; border-radius: 3px 9px 9px 9px; font-size: 9px; line-height: 1.5; }
+    .bubble.user { align-self: flex-end; color: #1a2115; background: var(--lime); border-radius: 9px 3px 9px 9px; }
+    .bubble.lesson { color: #ffe0aa; background: #362d24; border: 1px solid #59462e; }
+    .agent-input-row { display: flex; gap: 7px; padding: 0 10px 10px; }
+    .agent-input { flex: 1; min-width: 0; padding: 8px 9px; color: var(--text); background: #0d131b; border: 1px solid #2d394a; border-radius: 7px; font-size: 9px; outline: none; }
+    .agent-send { padding: 0 10px; color: #1b2412; background: var(--lime); border: 0; border-radius: 7px; cursor: pointer; font-size: 9px; font-weight: 800; }
+    .training-foot { padding: 0 14px 12px; color: #748196; font-size: 8px; }
+    .training-foot strong { color: var(--amber); font-weight: 600; }
+    .toast { position: fixed; right: 20px; bottom: 20px; padding: 10px 14px; border: 1px solid #3c4a60; border-radius: 9px; background: #1b2533; color: var(--text); box-shadow: 0 8px 35px #0008; font-size: 10px; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .error-banner { display: none; margin: 0 0 12px; padding: 9px 12px; color: #ffbdc3; background: #3b2027; border: 1px solid #683541; border-radius: 9px; font-size: 10px; }
+    .error-banner.show { display: block; }
+    @media (max-width: 1120px) {
+      .app { grid-template-columns: 68px minmax(0,1fr); }
+      .sidebar { align-items: center; padding-inline: 8px; }
+      .brand { padding: 0; }
+      .brand-copy, .nav-label, .nav-item span:not(.nav-icon), .facility-mini, .user-copy { display: none; }
+      .nav { width: 100%; margin-top: -20px; }
+      .nav-item { justify-content: center; padding-inline: 8px; }
+      .nav-count { display: none; }
+      .user-chip { justify-content: center; }
+    }
+    @media (max-width: 900px) {
+      .main { padding: 20px 16px 30px; }
+      .tower-grid { grid-template-columns: 1fr; }
+      .feed-panel { min-height: 190px; }
+      .feed-list { grid-template-columns: repeat(2, minmax(0,1fr)); column-gap: 16px; }
+      .stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
+      .training-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width: 620px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .main { padding: 16px 12px 25px; }
+      .topbar { align-items: flex-start; }
+      .sim-chip { font-size: 8px; }
+      .clock-chip { display: none; }
+      .title-row { align-items: flex-start; flex-direction: column; margin-top: 23px; }
+      .date-control { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+      .date-control select { margin-left: 0; }
+      .stats { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+      .stat { min-height: 78px; padding: 11px; }
+      .stat-value { font-size: 21px; }
+      .feed-list { grid-template-columns: 1fr; }
+      .training-grid { grid-template-columns: 1fr; }
+      .manifest-controls { flex: 1; }
+      .search { width: 116px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SH</div>
+        <div class="brand-copy"><div class="brand-name">setuhaul</div><div class="brand-sub">control tower</div></div>
+      </div>
+      <div class="nav-label">Operations</div>
+      <nav class="nav" aria-label="Main navigation">
+        <a class="nav-item active" href="#tower"><span class="nav-icon">◈</span><span>Overview</span></a>
+        <a class="nav-item" href="#manifest"><span class="nav-icon">▤</span><span>Shipments</span><span class="nav-count" id="nav-shipments">—</span></a>
+        <a class="nav-item" href="#dock-board"><span class="nav-icon">▦</span><span>Dock board</span></a>
+        <a class="nav-item" href="#activity"><span class="nav-icon">⌁</span><span>Exceptions</span><span class="nav-count" id="nav-alerts">—</span></a>
+      </nav>
+      <div class="nav-label">Academy</div>
+      <nav class="nav">
+        <a class="nav-item" href="#training"><span class="nav-icon">✳</span><span>Agent training</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="facility-mini">
+          <div class="facility-mini-title">Selected facility</div>
+          <div class="facility-name">Jaipur Distribution Center</div>
+          <div class="facility-status"><i class="pulse-dot"></i><span>6 docks · operating</span></div>
+        </div>
+        <div class="user-chip">
+          <div class="avatar">OC</div>
+          <div class="user-copy"><div class="user-name">Ops Control</div><div class="user-role">Tower supervisor</div></div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main" id="tower">
+      <header class="topbar">
+        <div class="breadcrumb">Network <span aria-hidden="true">/</span> India <span aria-hidden="true">/</span> <strong>Jaipur tower</strong></div>
+        <div class="top-actions">
+          <span class="sim-chip"><i class="pulse-dot"></i> TRAINING SIMULATION</span>
+           <a class="deployment-link" href="/deployment">Deployment control ↗</a>
+          <span class="clock-chip"><span>◷</span><span id="clock">12:45 IST</span></span>
+          <button class="icon-button" id="refresh" type="button" aria-label="Refresh dashboard" title="Refresh">↻</button>
+        </div>
+      </header>
+
+      <section class="title-row">
+        <div><h1>Operations tower</h1><div class="page-subtitle">A live view of inbound flow, dock capacity, exceptions and training agents.</div></div>
+        <label class="date-control">Simulation time
+          <select id="time-select" aria-label="Select simulation time">
+            <option>09:30</option><option>10:30</option><option selected>12:45</option><option>14:00</option>
+            <option>16:30</option><option>18:30</option><option>20:00</option>
+          </select>
+        </label>
+      </section>
+
+      <div id="error-banner" class="error-banner" role="status"></div>
+      <section class="stats" aria-label="Operational summary">
+        <article class="stat live"><div class="stat-label">Inbound today</div><div class="stat-value"><span id="stat-inbound">—</span><span class="stat-note">loads</span></div></article>
+        <article class="stat"><div class="stat-label">On the road</div><div class="stat-value"><span id="stat-road">—</span><span class="stat-note">in transit</span></div></article>
+        <article class="stat"><div class="stat-label">At facility</div><div class="stat-value"><span id="stat-gate">—</span><span class="stat-note">gate / dock</span></div></article>
+        <article class="stat"><div class="stat-label">Booked</div><div class="stat-value"><span id="stat-booked">—</span><span class="stat-note">confirmed</span></div></article>
+        <article class="stat alert"><div class="stat-label">Needs attention</div><div class="stat-value"><span id="stat-alerts">—</span><span class="stat-note">priority / blocked</span></div></article>
+      </section>
+
+      <section class="tower-grid">
+        <article class="panel" id="dock-board">
+          <div class="panel-head">
+            <div><div class="panel-title">Dock flow</div><div class="panel-kicker">Jaipur DC · local time · slot occupancy</div></div>
+            <span class="live-badge"><i class="pulse-dot"></i> BOARD SYNCED</span>
+          </div>
+          <div class="board-legend">
+            <span class="legend-item"><i class="legend-swatch free"></i>Available</span>
+            <span class="legend-item"><i class="legend-swatch booked"></i>Booked / active</span>
+            <span class="legend-item"><i class="legend-swatch pending"></i>Awaiting</span>
+            <span class="legend-item"><i class="legend-swatch blocked"></i>Blocked / overrun</span>
+          </div>
+          <div class="timeline" id="dock-timeline">
+            <div class="empty-feed">Loading dock board…</div>
+          </div>
+          <div class="board-note">Hover a slot for its shipment and interval. A striped cell is unavailable or claimed by an overrun.</div>
+        </article>
+
+        <article class="panel feed-panel" id="activity">
+          <div class="panel-head">
+            <div><div class="panel-title">Live activity</div><div class="panel-kicker">Service events · newest first</div></div>
+            <button class="panel-action" id="feed-refresh" type="button">Refresh ↻</button>
+          </div>
+          <div class="feed-list" id="activity-feed"><div class="empty-feed">Loading operational events…</div></div>
+        </article>
+      </section>
+
+      <section class="panel manifest" id="manifest">
+        <div class="panel-head">
+          <div><div class="panel-title">Inbound manifest</div><div class="panel-kicker">Priority-sorted arrivals · synthetic training data</div></div>
+          <div class="manifest-controls"><input class="search" id="shipment-search" placeholder="Find shipment…" aria-label="Search shipments"></div>
+        </div>
+        <div class="manifest-wrap">
+          <table>
+            <thead><tr><th>Shipment</th><th>Driver</th><th>ETA</th><th>Dock / slot</th><th>Priority</th><th>Shipment status</th><th>Appointment</th></tr></thead>
+            <tbody id="manifest-body"><tr><td class="empty-row" colspan="7">Loading arrivals…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel training" id="training">
+        <div class="panel-head">
+          <div><div class="panel-title">Agent training room</div><div class="training-head-copy">Practice exception conversations without touching live bookings.</div></div>
+          <span class="role-tag">LOCAL ROLEPLAY</span>
+        </div>
+        <div class="training-grid" id="training-grid"></div>
+        <div class="training-foot"><strong>Training only:</strong> these deterministic roleplay agents do not contact drivers or facilities and cannot change appointments.</div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    })[char]);
+    const toTime = (minutes) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+    const stateLabel = (state) => ({
+      IN_TRANSIT: "On road", AT_GATE: "At gate", WAITING: "Waiting", IN_DOCK: "In dock",
+      ASSIGNED: "Assigned", PLANNED: "Planned", CONFIRMED: "Confirmed",
+      PENDING_CONFIRMATION: "Pending", IN_PROGRESS: "In progress"
+    }[state] || String(state || "—").replaceAll("_", " ").toLowerCase());
+    const showToast = (message) => {
+      const toast = $("#toast"); toast.textContent = message; toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 2300);
+    };
+
+    function renderDocks(docks) {
+      const hourLabels = Array.from({length: 28}, (_, i) =>
+        `<span>${i % 2 === 0 ? `${String(8 + i / 2).padStart(2, "0")}:00` : ""}</span>`).join("");
+      const header = `<div class="time-ruler"><span></span>${hourLabels}</div>`;
+      const rows = docks.map((dock) => {
+        let cursor = 480;
+        const cells = dock.slots.sort((a, b) => a.start - b.start).map((slot) => {
+          const gap = Math.max(0, Math.round((slot.start - cursor) / 30));
+          const kind = slot.state.toLowerCase();
+          const span = Math.max(1, Math.round((slot.end - slot.start) / 30));
+          const title = `${dock.dock} · ${toTime(slot.start)}–${toTime(slot.end)} · ${slot.state}${slot.shipment_id ? ` · ${slot.shipment_id}` : ""}`;
+          cursor = slot.end;
+          return `${gap ? `<span class="slot-gap" style="grid-column:span ${gap}"></span>` : ""}<span class="slot ${escapeHtml(kind)}" style="grid-column:span ${span}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}"></span>`;
+        }).join("");
+        const endGap = Math.max(0, Math.round((1320 - cursor) / 30));
+        return `<div class="dock-row"><div class="dock-label">${escapeHtml(dock.dock)}<small>${escapeHtml(dock.type)}</small></div>${cells}${endGap ? `<span class="slot-gap" style="grid-column:span ${endGap}"></span>` : ""}</div>`;
+      }).join("");
+      $("#dock-timeline").innerHTML = header + rows;
+    }
+
+    function renderFeed(events) {
+      if (!events.length) {
+        $("#activity-feed").innerHTML = `<div class="empty-feed">No service actions recorded yet.<br>As you run training scenarios, events will appear here.</div>`;
+        return;
+      }
+      $("#activity-feed").innerHTML = events.slice(0, 10).map((event) => {
+        const payload = event.payload || {}, shipment = payload.shipment_id ? ` · ${payload.shipment_id}` : "";
+        const action = String(event.action || "").replaceAll("_", " ").toLowerCase();
+        const category = /ESCALAT|REJECT|SAFETY/.test(event.action) ? "alert" : /CONFIRMED|CREATED/.test(event.action) ? "good" : "";
+        const symbol = category === "alert" ? "!" : category === "good" ? "✓" : "↗";
+        const summary = payload.summary ? `<div class="feed-meta">${escapeHtml(payload.summary)}</div>` : "";
+        const source = event.source ? ` · ${escapeHtml(event.source)}` : "";
+        return `<div class="feed-item"><span class="feed-icon ${category}">${symbol}</span><div><div class="feed-text"><strong>${escapeHtml(event.actor)}</strong> · ${escapeHtml(action)}${escapeHtml(shipment)}</div><div class="feed-meta"><span>${escapeHtml(event.time)}</span><span>${escapeHtml(event.action)}${source}</span></div>${summary}</div></div>`;
+      }).join("");
+    }
+
+    function renderManifest(shipments) {
+      const filter = $("#shipment-search").value.trim().toLowerCase();
+      const rows = shipments.filter((item) =>
+        [item.shipment_id, item.driver_id, item.current_status, item.dock_code].join(" ").toLowerCase().includes(filter));
+      $("#manifest-body").innerHTML = rows.length ? rows.map((item) => {
+        const appointment = item.appointment_status
+          ? `<span class="status-tag ${escapeHtml(item.appointment_status)}">${escapeHtml(stateLabel(item.appointment_status))}</span>`
+          : `<span class="status-tag">No slot</span>`;
+        return `<tr>
+          <td class="shipment-id">${escapeHtml(item.shipment_id)}</td>
+          <td>${escapeHtml(item.driver_id)}</td>
+          <td>${escapeHtml(item.eta)} <span class="stat-note">${escapeHtml(item.eta_confidence)}</span></td>
+          <td>${escapeHtml(item.dock_code || "—")} ${item.slot_start ? `· ${escapeHtml(item.slot_start)}` : ""}</td>
+          <td><span class="priority ${escapeHtml(item.priority_code)}"><i></i>${escapeHtml(item.priority_code)}</span></td>
+          <td><span class="status-tag ${escapeHtml(item.current_status)}">${escapeHtml(stateLabel(item.current_status))}</span></td>
+          <td>${appointment}</td>
+        </tr>`;
+      }).join("") : `<tr><td class="empty-row" colspan="7">No matching inbound shipments.</td></tr>`;
+    }
+
+    async function refreshDashboard() {
+      const time = $("#time-select").value;
+      $("#clock").textContent = `${time} IST`;
+      try {
+        const response = await fetch(`/activity?now=${encodeURIComponent(time)}`, {cache: "no-store"});
+        if (!response.ok) throw new Error(`Activity API returned ${response.status}`);
+        const data = await response.json();
+        $("#error-banner").classList.remove("show");
+        $("#stat-inbound").textContent = data.counts.inbound;
+        $("#stat-road").textContent = data.counts.in_transit;
+        $("#stat-gate").textContent = data.counts.at_gate;
+        $("#stat-booked").textContent = data.counts.booked;
+        $("#stat-alerts").textContent = data.counts.alerts + data.counts.pending;
+        $("#nav-shipments").textContent = data.counts.inbound;
+        $("#nav-alerts").textContent = data.counts.alerts + data.counts.pending;
+        renderDocks(data.docks);
+        renderFeed(data.activity);
+        renderManifest(data.shipments);
+        if (!window.trainingInitialized) initializeTraining(data.training_agents);
+      } catch (error) {
+        $("#error-banner").textContent = `Dashboard disconnected: ${error.message}. Start the SetuHaul service to view activity.`;
+        $("#error-banner").classList.add("show");
+      }
+    }
+
+    function appendBubble(agentId, text, kind = "") {
+      const log = document.getElementById(`chat-${agentId}`), bubble = document.createElement("div");
+      bubble.className = `bubble ${kind}`.trim(); bubble.textContent = text; log.appendChild(bubble);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function initializeTraining(agents) {
+      $("#training-grid").innerHTML = Object.entries(agents).map(([agentId, agent]) => {
+        const role = escapeHtml(agent.role), id = escapeHtml(agentId);
+        const roleLabel = role === "facility" ? "FACILITY" : `DRIVER ${escapeHtml(agentId.slice(-2))}`;
+        const avatar = role === "facility" ? "⌂" : "↗";
+        const placeholder = role === "facility" ? "Ask the facility desk…" : "Ask the driver…";
+        return `<article class="agent-card ${role}" data-agent-id="${id}">
+          <div class="agent-head"><div class="agent-avatar">${avatar}</div><div><div class="agent-name">${escapeHtml(agent.name)}</div><div class="agent-scenario">${escapeHtml(agent.scenario)}</div></div><span class="role-tag">${roleLabel}</span></div>
+          <div class="chat-log" id="chat-${id}" aria-live="polite"></div>
+          <form class="agent-input-row" data-role="${role}" data-agent-id="${id}"><input class="agent-input" name="message" autocomplete="off" placeholder="${placeholder}" aria-label="Message ${escapeHtml(agent.name)}"><button class="agent-send" type="submit">Send</button></form>
+        </article>`;
+      }).join("");
+      Object.entries(agents).forEach(([agentId, agent]) => appendBubble(agentId, agent.opening));
+      window.trainingInitialized = true;
+      bindTrainingForms();
+    }
+
+    function bindTrainingForms() {
+      document.querySelectorAll(".agent-input-row").forEach((form) => {
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const role = form.dataset.role, agentId = form.dataset.agentId;
+          const input = form.elements.message, message = input.value.trim();
+          if (!message) return;
+          appendBubble(agentId, message, "user"); input.value = "";
+          try {
+            const response = await fetch("/training/agent", {
+              method: "POST", headers: {"Content-Type": "application/json"},
+              body: JSON.stringify({role, agent_id: agentId, message})
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Training agent unavailable");
+            appendBubble(agentId, data.reply);
+            appendBubble(agentId, data.lesson, "lesson");
+          } catch (error) { appendBubble(agentId, error.message, "lesson"); }
+        });
+      });
+    }
+
+    $("#shipment-search").addEventListener("input", () => refreshDashboard());
+    $("#time-select").addEventListener("change", refreshDashboard);
+    $("#refresh").addEventListener("click", () => { refreshDashboard(); showToast("Tower refreshed"); });
+    $("#feed-refresh").addEventListener("click", refreshDashboard);
+    refreshDashboard();
+    window.setInterval(refreshDashboard, 20000);
+  </script>
+</body>
+</html>

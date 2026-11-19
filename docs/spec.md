@@ -8,43 +8,15 @@ code decides, humans approve.** All times are minutes since midnight on 4 Aug 20
 
 ```mermaid
 flowchart LR
-    subgraph Channels
-        DRV[Driver chat]
-        FAC[Facility / gate staff]
-        COORD[Coordinators x5]
-    end
-    subgraph Harnesses
-        BS[brief_scenarios.py<br/>8 scripted brief scenarios]
-        SB[sandbox.py<br/>live role-play day]
-        EV[nvidia_agent_evals.py<br/>case + stress suites]
-        WE[workflow_evals.py<br/>deterministic risk evals]
-    end
-    subgraph Advisory
-        AG[nvidia_agents.py<br/>Triage / Dispatch / Assessment<br/>ask_agent, parse_agent_response]
-        LLM[(NVIDIA chat completions<br/>nemotron-3-ultra)]
-    end
-    subgraph Deterministic
-        GD[guards.py<br/>feasible_*_ids, guard_answer,<br/>ungrounded_evidence, CoordinatorQueue]
-        SE[slot_engine.py<br/>SlotEngine: check, hold, request,<br/>confirm, release, conflicts, race_for_slot]
-        ETA[brief_scenarios.revise_eta<br/>D3 confidence rule]
-        WS[workflow_simulation.py<br/>apply_view_fixes]
-    end
-    DB[(SQLite: seed schema + views<br/>+ slot_holds + processed_messages)]
-    SEED[setuhaul_schema_and_seed.sql]
-
-    DRV --> BS & SB
-    FAC --> BS & SB
-    BS & SB & EV --> AG --> LLM
-    AG --> GD
-    BS & SB --> GD
-    BS --> ETA
-    BS --> SE
-    SB --> WS
-    SE --> WS
-    SEED --> SE & WS
-    SE --> DB
-    GD --> COORD
-    WE --> WS
+    DRV[Driver / facility message] --> LG[LangGraph safety gate]
+    LG -->|driver safety incident| ESC[Coordinator escalation]
+    LG -->|normal message| SVC[service.py]
+    SVC --> ETA[ETA and conversation state]
+    SVC --> GUARD[guards.py]
+    GUARD --> ENGINE[slot_engine.py]
+    ENGINE --> DB[(SQLite)]
+    AG[nvidia_agents.py] -. advice only .-> GUARD
+    ENGINE --> RESP[Driver reply / warehouse request]
 ```
 
 | File | Responsibility |
@@ -52,6 +24,10 @@ flowchart LR
 | `nvidia_agents.py` | Role prompts (`SYSTEM_PROMPTS`), output contract (`OUTPUT_INSTRUCTIONS`), HTTP client with retry (`_post`), strict schema validation (`parse_agent_response`), `.env` loader (`load_nvidia_env`), free-text role-play (`chat_text`). |
 | `guards.py` | Deterministic feasibility pre-filters for synthetic payloads, selection guard, evidence grounding, coordinator priority scoring and queue. |
 | `slot_engine.py` | Authoritative feasibility on the real seed data, hold/request/confirm/release state machine, idempotency, integrity checks, dock board, concurrency proof. |
+| `conversation_graph.py` | LangGraph routes explicit safety emergencies to escalation before scheduling. |
+| `dashboard.html` | Responsive, read-only operations tower with a dock timeline, inbound manifest, service activity feed and driver/facility training chats. |
+| `training_agents.py` | Deterministic roleplay personas and learning cues; no access to operational records or state changes. |
+| `service.py` | HTTP endpoints, message/option-selection workflow, persisted thread state and service audit. |
 | `workflow_simulation.py` | Seeded in-memory DB, runtime view patches (`apply_view_fixes`), outage verification flow. |
 | `brief_scenarios.py` | S1-S8 brief scenarios on seed data, ETA rule, agent harness (`Runner`), escalation recorder, measures and HTML report. |
 | `sandbox.py` | Closed-loop live day (09:30-21:00) with LLM role-played drivers/facility vs hidden ground truth. |
@@ -176,7 +152,7 @@ APT1005→031, APT1009→047, APT1014A→005).
 | `confirm(shipment, group, eta, now, warehouse_ref)` | Requires REQUESTED rows. `BEGIN IMMEDIATE`; re-check; infeasible → RELEASED + commit, return reasons. Else cancel old current appointment (`is_current=0`, reason "Replaced after driver exception"), insert `APT-NEW-{last4}-{now}` CONFIRMED with `replaced_appointment_id`, mark holds CONFIRMED, commit. |
 | `release_appointment(appointment_id, now, reason)` | Cancels only if `is_current=1`; returns whether a row changed, so replays are no-ops. |
 | `seen(key)` / `remember(key, now, outcome)` | `processed_messages` lookup / `INSERT OR IGNORE`; `remember` returns True only the first time. |
-| `conflicts()` | `slots_with_two_live_claims` (appointments ∪ HELD/REQUESTED holds by distinct shipment), `shipments_with_two_current`, `foreign_key_errors`. |
+| `conflicts()` | `slots_with_two_live_claims`, `shipments_with_two_current`, `new_appointment_overlaps`, `preexisting_appointment_overlaps`, `foreign_key_errors`. The integrity endpoint excludes pre-existing overlaps from its blocking `ok` flag but reports them. |
 | `board(now)` | Per slot: FREE / BLOCKED / BOOKED / WIP / PENDING / HELD / REQUESTED / OVERRUN, `!` suffix if blocked but occupied. |
 
 ### 4.5 Concurrency
@@ -222,11 +198,12 @@ by phone because email OM004 FAILED.
 | `nvidia_agent_evals.py` (`--suite baseline|stress|all`, `--repeats`, `--from-results`) | Synthetic cases per role. | Per case: 40 % safety (valid, no guard intervention) + 60 % correct decision − 10 % if ungrounded; errors earn 0. Workflow score = earned / points. |
 | `sandbox.py` | Closed-loop day; agent answers drive actions (`_act_on_driver`). | 50 decisions + 30 safety + 20 outcomes. |
 | `workflow_evals.py` | Deterministic risk evals (unverified ETA, outage verification, booking impact, human triage, feasibility, booking race). | Pass/fail weighted. |
-| `tests/` (32 tests, stdlib `unittest`) | Engine invariants, ETA rule, offline coverage, schema parsing, scoring. | `python3 -m unittest discover -s tests` |
+| `tests/` (`unittest`) | Engine invariants, offline coverage, HTTP API and end-to-end conversation/booking flows. | `.venv/bin/python -m unittest discover -s tests -v` |
 
-Latest results: brief run 92.6/100, accuracy 85.2 % (23/27), 0 conflicts, escalation completeness
-100 %, 13 guard interventions, 1 ungrounded answer, mean latency 21.8 s. Stress suite 100/100 after
-prompt fixes. Sandbox 80.7, decision accuracy 71 %, all 5 safety checks pass.
+Historical harness results before the HTTP/LangGraph changes: brief run 92.6/100, accuracy 85.2 %
+(23/27), 0 conflicts, escalation completeness 100 %, 13 guard interventions, 1 ungrounded answer,
+mean latency 21.8 s. Stress suite 100/100 after prompt fixes. Sandbox 80.7, decision accuracy 71 %,
+all 5 safety checks pass. These are not measurements of the new service flow.
 
 ## 8. Public functions (current API surface)
 
@@ -239,9 +216,9 @@ guards.review_priority(report_type, *, affected_loads, shipment_priority, minute
 guards.CoordinatorQueue.submit(item) -> "QUEUED"|"MERGED"|"DIGEST"; .advance(now) -> list
 SlotEngine(db_path=":memory:", seed_path, seed=True)
 SlotEngine.check / feasible(shipment_id, eta, *, now, not_before=None, finish_by=None)
-SlotEngine.hold(shipment_id, option, eta, *, now, ttl=10) -> (bool, group|reason)
-SlotEngine.request(shipment_id, group, *, now, request_key) -> ("REQUESTED"|"STALE"|"DUPLICATE", detail)
-SlotEngine.confirm(shipment_id, group, eta, *, now, warehouse_ref) -> (bool, appointment_id|reason)
+SlotEngine.hold(shipment_id, option, eta, *, now, ttl=10, not_before=None, finish_by=None) -> (bool, group|reason)
+SlotEngine.request(shipment_id, group, *, now, request_key) -> ("REQUESTED"|"STALE"|"DUPLICATE"|"KEY_REUSED", detail)
+SlotEngine.confirm(shipment_id, group, eta, *, now, warehouse_ref, not_before=None, finish_by=None) -> (bool, appointment_id|reason)
 SlotEngine.release_appointment(appointment_id, *, now, reason) -> bool
 SlotEngine.expire_holds(now) -> int; seen(key); remember(key, now, outcome)
 SlotEngine.conflicts() -> dict; board(now) -> dict; overrun_claims() -> dict
@@ -249,8 +226,15 @@ slot_engine.race_for_slot(slot_id, shipment_ids, eta, now) -> dict
 brief_scenarios.revise_eta(text, sent_at, history) -> dict
 ```
 
-An HTTP wrapper (`service.py`, hold/request/confirm/release over `SlotEngine`) is being built in
-parallel and is not part of this as-built spec.
+The HTTP service is implemented in `service.py`. Driver replies selecting an offered option are
+resolved against the persisted option list, rechecked by `SlotEngine`, then moved through hold and
+warehouse-request states. Safety/emergency reports from linked drivers route through LangGraph to
+human escalation before slot planning.
+
+The operations dashboard is served at `/` and `/dashboard`. It polls `GET /activity?now=HH:MM`
+for the seeded Jaipur simulation's dock board, inbound manifest, counters and service audit events.
+The Training Room posts only to `POST /training/agent`; these two deterministic personas are
+explicitly training-only and cannot create operational holds or appointment changes.
 
 ## 9. Failure modes and fallbacks
 
@@ -264,28 +248,22 @@ parallel and is not part of this as-built spec.
 | VERIFIED from a driver claim | harness check | Downgraded to UNVERIFIED / ignored. |
 | Option changed between offer and accept | `hold`/`request`/`confirm` re-check | `STALE` or reasons returned; re-offer. |
 | Two writers on one slot | `BEGIN IMMEDIATE` + `ux_live_hold_per_slot` | Loser gets rejection, retries with fresh options. |
-| Duplicate message / retry / replayed cancel | `processed_messages`, `release_appointment` rowcount | No-op. |
+| Reused request key for a different hold | Transactional key fingerprint in `processed_messages` | `409 KEY_REUSED`; no state change. |
+| Duplicate message / retry / replayed cancel | `service_messages`, `processed_messages`, `release_appointment` rowcount | No-op. |
 | Escalation channel fails | `delivery_status` | Retry another contact/channel (S6 email → phone). |
 | No feasible slot | empty feasible set | Hand-off record with 13 fields to a named owner. |
 
 ## 10. Known limitations
 
-- **Agent advice does not drive `brief_scenarios.py`**: the scenario flow is scripted; agent
-  answers are scored but the engine path is fixed. `sandbox.py` is closed-loop but books through
-  its own `_book`, not `SlotEngine`.
-- **Triage misses (4/27)**: in S2, S5 (×2) and S6 Triage chose `CLARIFY/FACILITY` where a facility
-  message, verified dock event or clear ETA should yield `PROPOSE`/`ESCALATE`.
-- **Role verification noise**: dispatch/assessment answered `VERIFIED` instead of `NOT_APPLICABLE`
-  (11 of 13 guard interventions); lowercase channel IDs (`wa-9001`) as `selected_id` fail the
-  uppercase `_ID` pattern.
-- **Two feasibility implementations**: `guards.feasible_slot_ids` (synthetic payloads; no dock
-  events, rules or overruns) vs `SlotEngine.check` (authoritative).
-- `slot_holds`/`processed_messages` exist only in the in-memory engine DB; not in
-  `setuhaul_schema_and_seed.sql` or the `.db` snapshot. The seed views are patched at runtime only.
-- `request()` reads hold state before `BEGIN IMMEDIATE` and its UPDATE does not re-assert
-  `state='HELD'`; `seen`/`remember` are not in the same transaction as the action.
-- No explicit `release_hold` API; holds end only by TTL, superseding hold, or failed confirm.
-- Single facility (`FACILITY` constant), single day, minutes since midnight (no cross-midnight).
-- `revise_eta` is regex-based (English phrasing, "< 7 → PM" heuristic).
-- No persistence of conversation state, audit log table, authentication, or channel adapters.
-- Mean LLM latency 21.8 s per call; harnesses call sequentially.
+- The brief scenario harness remains scripted; the HTTP service is the closed-loop message flow.
+- Data and runtime state are single-facility, single-day and backed by SQLite. The EKS deployment
+  uses one replica and an EBS-backed `gp3` PVC; it is not horizontally scalable.
+- Emergency escalation is persisted for a linked shipment, but the prototype does not call emergency
+  services or dispatch a real outbound notification.
+- The HTTP API has no caller authentication, inbound provider signature verification, public TLS,
+  or production messaging adapter. Its Kubernetes Service is private (`ClusterIP`).
+- ETA interpretation remains regex-based and English-language, including the existing `"< 7 → PM"`
+  heuristic.
+- The database snapshot contains pre-existing overlapping appointments; `/integrity` reports these
+  separately from overlaps created by this service.
+- The NVIDIA client remains optional; when enabled it supplies advice only and does not commit state.
