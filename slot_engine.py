@@ -13,6 +13,7 @@ import sqlite3
 import tempfile
 import threading
 from typing import Any
+from uuid import uuid4
 
 from guards import to_minutes
 from workflow_simulation import DEFAULT_SEED, apply_view_fixes
@@ -21,6 +22,7 @@ from workflow_simulation import DEFAULT_SEED, apply_view_fixes
 FACILITY = "FAC-JAI-01"
 DAY = "2026-08-04"
 HOLD_TTL_MIN = 10
+REQUEST_TTL_MIN = 15
 HARD_EVENTS = ("BREAKDOWN", "MAINTENANCE")
 ACTIVE_APPOINTMENTS = ("CONFIRMED", "PENDING_CONFIRMATION", "IN_PROGRESS")
 PRIORITY_RANK = {"CRITICAL": 0, "HIGH": 1, "NORMAL": 2, "LOW": 3}
@@ -41,7 +43,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_live_hold_per_slot
 CREATE TABLE IF NOT EXISTS processed_messages (
     idempotency_key TEXT PRIMARY KEY,
     first_seen_min INTEGER NOT NULL,
-    outcome TEXT NOT NULL
+    outcome TEXT NOT NULL,
+    request_fingerprint TEXT NOT NULL DEFAULT ''
 );
 """
 
@@ -82,10 +85,15 @@ class SlotEngine:
     def __init__(self, db_path: str = ":memory:", seed_path: Path = DEFAULT_SEED, *, seed: bool = True):
         self.db = sqlite3.connect(db_path, isolation_level=None, check_same_thread=False, timeout=10)
         self.db.row_factory = sqlite3.Row
+        self.db.create_function("to_minutes", 1, to_minutes, deterministic=True)
         if seed:
             self.db.executescript(seed_path.read_text(encoding="utf-8"))
             apply_view_fixes(self.db)
-            self.db.executescript(HOLDS_SCHEMA)
+        self.db.executescript(HOLDS_SCHEMA)
+        columns = {row["name"] for row in self.db.execute("PRAGMA table_info(processed_messages)")}
+        if "request_fingerprint" not in columns:
+            self.db.execute(
+                "ALTER TABLE processed_messages ADD COLUMN request_fingerprint TEXT NOT NULL DEFAULT ''")
         self.db.execute("PRAGMA foreign_keys = ON")
         self.rechecks_failed = 0
 
@@ -163,7 +171,8 @@ class SlotEngine:
 
     def expire_holds(self, now: int) -> int:
         cur = self.db.execute(
-            "UPDATE slot_holds SET state='EXPIRED' WHERE state='HELD' AND expires_min <= ?", (now,))
+            "UPDATE slot_holds SET state='EXPIRED' WHERE state IN ('HELD','REQUESTED') AND expires_min <= ?",
+            (now,))
         return cur.rowcount
 
     # ----- feasibility ----------------------------------------------------
@@ -239,13 +248,15 @@ class SlotEngine:
 
     # ----- state machine: OPTION -> HELD -> REQUESTED -> CONFIRMED --------
     def hold(self, shipment_id: str, option: SlotCheck, eta: int, *, now: int,
-             ttl: int = HOLD_TTL_MIN) -> tuple[bool, str]:
+             ttl: int = HOLD_TTL_MIN, not_before: int | None = None,
+             finish_by: int | None = None) -> tuple[bool, str]:
         """Atomically re-check and hold every slot in an option. Returns (ok, detail)."""
-        group = f"{shipment_id}@{option.slot_ids[0]}@{now}"
+        group = f"{shipment_id}@{option.slot_ids[0]}@{now}@{uuid4().hex[:8]}"
         self.db.execute("BEGIN IMMEDIATE")
         try:
             self.expire_holds(now)
-            fresh = {c.slot_ids[0]: c for c in self.check(shipment_id, eta, now=now)}
+            fresh = {c.slot_ids[0]: c for c in self.check(
+                shipment_id, eta, now=now, not_before=not_before, finish_by=finish_by)}
             current = fresh.get(option.slot_ids[0])
             if current is None or not current.feasible:
                 self.db.execute("ROLLBACK")
@@ -253,7 +264,7 @@ class SlotEngine:
                 return False, "; ".join(current.reasons if current else ["slot no longer exists"])
             self.db.execute(
                 "UPDATE slot_holds SET state='RELEASED' WHERE shipment_id=? AND state='HELD'", (shipment_id,))
-            for slot_id in option.slot_ids:
+            for slot_id in current.slot_ids:
                 self.db.execute(
                     "INSERT INTO slot_holds(slot_id, shipment_id, group_key, state, created_min, expires_min)"
                     " VALUES (?,?,?,?,?,?)", (slot_id, shipment_id, group, "HELD", now, now + ttl))
@@ -265,34 +276,63 @@ class SlotEngine:
 
     def request(self, shipment_id: str, group: str, *, now: int, request_key: str) -> tuple[str, str]:
         """Driver accepted a held option. Idempotent on request_key. Returns (status, detail)."""
-        if self.seen(request_key):
-            return "DUPLICATE", "same request already processed"
-        self.expire_holds(now)
-        rows = self.db.execute(
-            "SELECT * FROM slot_holds WHERE group_key=? AND shipment_id=?", (group, shipment_id)).fetchall()
-        if not rows or any(r["state"] != "HELD" for r in rows):
-            self.rechecks_failed += 1
-            state = rows[0]["state"] if rows else "MISSING"
-            self.remember(request_key, now, "STALE")
-            return "STALE", f"hold is {state}; option must be re-checked"
-        self.db.execute("BEGIN IMMEDIATE")
-        self.db.execute(
-            "UPDATE slot_holds SET state='REQUESTED', expires_min=NULL, request_key=? WHERE group_key=?",
-            (request_key, group))
-        self.db.execute("COMMIT")
-        self.remember(request_key, now, "REQUESTED")
-        return "REQUESTED", rows[0]["slot_id"]
-
-    def confirm(self, shipment_id: str, group: str, eta: int, *, now: int, warehouse_ref: str) -> tuple[bool, str]:
-        """Facility accepted. Re-check feasibility, then replace the current appointment atomically."""
-        rows = self.db.execute(
-            "SELECT * FROM slot_holds WHERE group_key=? AND state='REQUESTED'", (group,)).fetchall()
-        if not rows:
-            return False, "no requested hold"
-        first = rows[0]["slot_id"]
         self.db.execute("BEGIN IMMEDIATE")
         try:
-            check = {c.slot_ids[0]: c for c in self.check(shipment_id, eta, now=now)}.get(first)
+            fingerprint = f"{shipment_id}\0{group}"
+            prior = self.db.execute(
+                "SELECT outcome, request_fingerprint FROM processed_messages WHERE idempotency_key=?",
+                (request_key,)).fetchone()
+            if prior:
+                self.db.execute("COMMIT")
+                if prior["request_fingerprint"] and prior["request_fingerprint"] != fingerprint:
+                    return "KEY_REUSED", "request_key was already used for a different hold"
+                return "DUPLICATE", "same request already processed"
+
+            self.expire_holds(now)
+            rows = self.db.execute(
+                "SELECT * FROM slot_holds WHERE group_key=? AND shipment_id=? ORDER BY hold_id",
+                (group, shipment_id)).fetchall()
+            if not rows or any(r["state"] != "HELD" for r in rows):
+                self.rechecks_failed += 1
+                state = rows[0]["state"] if rows else "MISSING"
+                self.db.execute(
+                    "INSERT INTO processed_messages VALUES (?,?,?,?)",
+                    (request_key, now, "STALE", fingerprint))
+                self.db.execute("COMMIT")
+                return "STALE", f"hold is {state}; option must be re-checked"
+
+            cur = self.db.execute(
+                "UPDATE slot_holds SET state='REQUESTED', expires_min=?, request_key=?"
+                " WHERE group_key=? AND shipment_id=? AND state='HELD'",
+                (now + REQUEST_TTL_MIN, request_key, group, shipment_id))
+            if cur.rowcount != len(rows):
+                self.db.execute("ROLLBACK")
+                return "STALE", "hold changed while request was being processed"
+            self.db.execute(
+                "INSERT INTO processed_messages VALUES (?,?,?,?)",
+                (request_key, now, "REQUESTED", fingerprint))
+            self.db.execute("COMMIT")
+            return "REQUESTED", rows[0]["slot_id"]
+        except Exception:
+            if self.db.in_transaction:
+                self.db.execute("ROLLBACK")
+            raise
+
+    def confirm(self, shipment_id: str, group: str, eta: int, *, now: int, warehouse_ref: str,
+                not_before: int | None = None, finish_by: int | None = None) -> tuple[bool, str]:
+        """Facility accepted. Re-check feasibility, then replace the current appointment atomically."""
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            self.expire_holds(now)
+            rows = self.db.execute(
+                "SELECT * FROM slot_holds WHERE group_key=? AND shipment_id=? AND state='REQUESTED'"
+                " ORDER BY hold_id", (group, shipment_id)).fetchall()
+            if not rows:
+                self.db.execute("COMMIT")
+                return False, "no requested hold"
+            first = rows[0]["slot_id"]
+            check = {c.slot_ids[0]: c for c in self.check(
+                shipment_id, eta, now=now, not_before=not_before, finish_by=finish_by)}.get(first)
             if check is None or not check.feasible:
                 self.db.execute("UPDATE slot_holds SET state='RELEASED' WHERE group_key=?", (group,))
                 self.db.execute("COMMIT")
@@ -306,14 +346,19 @@ class SlotEngine:
                     "UPDATE appointments SET appointment_status='CANCELLED', is_current=0, cancelled_at=?,"
                     " cancellation_reason='Replaced after driver exception', updated_at=? WHERE appointment_id=?",
                     (ts(now), ts(now), old["appointment_id"]))
-            new_id = f"APT-NEW-{shipment_id[-4:]}-{now}"
+            new_id = f"APT-NEW-{shipment_id[-4:]}-{now}-{uuid4().hex[:8]}"
             self.db.execute(
                 "INSERT INTO appointments(appointment_id, shipment_id, slot_id, appointment_status, booking_source,"
                 " is_current, booked_at, confirmed_at, replaced_appointment_id, warehouse_confirmation_ref, updated_at)"
                 " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
                 (new_id, shipment_id, first, "CONFIRMED", "DRIVER_CHAT", 1, ts(now), ts(now),
                  old["appointment_id"] if old else None, warehouse_ref, ts(now)))
-            self.db.execute("UPDATE slot_holds SET state='CONFIRMED' WHERE group_key=?", (group,))
+            changed = self.db.execute(
+                "UPDATE slot_holds SET state='CONFIRMED' WHERE group_key=? AND shipment_id=? AND state='REQUESTED'",
+                (group, shipment_id))
+            if changed.rowcount != len(rows):
+                self.db.execute("ROLLBACK")
+                return False, "hold changed while confirmation was being processed"
             self.db.execute("COMMIT")
             return True, new_id
         except sqlite3.IntegrityError as exc:
@@ -348,12 +393,32 @@ class SlotEngine:
 
     def remember(self, key: str, now: int, outcome: str) -> bool:
         cur = self.db.execute(
-            "INSERT OR IGNORE INTO processed_messages VALUES (?,?,?)", (key, now, outcome))
+            "INSERT OR IGNORE INTO processed_messages(idempotency_key, first_seen_min, outcome)"
+            " VALUES (?,?,?)", (key, now, outcome))
         return cur.rowcount == 1
 
     # ----- integrity and views -------------------------------------------
     def conflicts(self) -> dict[str, int]:
         q = self.db.execute
+        overlaps = q(
+            """SELECT
+                   SUM(CASE WHEN a.appointment_id LIKE 'APT-NEW-%' OR b.appointment_id LIKE 'APT-NEW-%'
+                            THEN 1 ELSE 0 END) AS created,
+                   SUM(CASE WHEN a.appointment_id NOT LIKE 'APT-NEW-%'
+                                  AND b.appointment_id NOT LIKE 'APT-NEW-%'
+                            THEN 1 ELSE 0 END) AS existing
+               FROM appointments a
+               JOIN appointments b ON a.appointment_id < b.appointment_id
+               JOIN appointment_slots sa ON sa.slot_id=a.slot_id
+               JOIN appointment_slots sb ON sb.slot_id=b.slot_id AND sb.dock_id=sa.dock_id
+               JOIN shipments sha ON sha.shipment_id=a.shipment_id
+               JOIN shipments shb ON shb.shipment_id=b.shipment_id
+               WHERE a.is_current=1 AND b.is_current=1
+                 AND a.appointment_status IN (?, ?, ?) AND b.appointment_status IN (?, ?, ?)
+                 AND a.shipment_id!=b.shipment_id
+                 AND to_minutes(sa.slot_start_ts) < to_minutes(sb.slot_start_ts) + shb.expected_unload_min
+                 AND to_minutes(sb.slot_start_ts) < to_minutes(sa.slot_start_ts) + sha.expected_unload_min""",
+            (*ACTIVE_APPOINTMENTS, *ACTIVE_APPOINTMENTS)).fetchone()
         return {
             "slots_with_two_live_claims": q(
                 f"""SELECT COUNT(*) FROM (SELECT slot_id FROM (
@@ -364,6 +429,8 @@ class SlotEngine:
             "shipments_with_two_current": q(
                 "SELECT COUNT(*) FROM (SELECT shipment_id FROM appointments WHERE is_current=1 "
                 "GROUP BY shipment_id HAVING COUNT(*) > 1)").fetchone()[0],
+            "new_appointment_overlaps": overlaps["created"] or 0,
+            "preexisting_appointment_overlaps": overlaps["existing"] or 0,
             "foreign_key_errors": len(q("PRAGMA foreign_key_check").fetchall()),
         }
 

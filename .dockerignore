@@ -1,0 +1,16 @@
+.git
+.venv
+__pycache__
+*.py[cod]
+*.db
+*.html
+!dashboard.html
+!deployment_dashboard.html
+*.json
+*.pdf
+*.png
+*.csv
+.env
+.env.*
+!.env.example
+docs
