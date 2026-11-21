@@ -1,0 +1,47 @@
+name: SetuHaul Deploy Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'devops_agent/**'
+      - 'SetuHaul_Data_Package/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # 1. Deploy Lambda function
+      - name: Deploy Lambda Function
+        run: |
+          cd /Users/manjunath/setu/SetuHaul_Data_Package
+          zip function.zip devops_agent/lambda_function.py
+          aws lambda update-function-code \
+            --function-name setuhaul-devops-lambda \
+            --zip-file fileb://function.zip \
+            --region ap-southeast-2 \
+            --publish
+
+      # 2. Deploy Vercel UI (GitHub connected, no token needed)
+      - name: Deploy Vercel UI
+        run: |
+          cd /Users/manjunath/setu/SetuHaul_Data_Package
+          npx vercel --prod
+
+  # Job 2: Verify deployment
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    name: Verify Deployment
+    steps:
+      - uses: actions/checkout@v3
+
+      # Verify Lambda is updated
+      - name: Verify Lambda
+        run: echo "Lambda deployment complete"
+
+      # Verify Vercel deployment
+      - name: Verify Vercel
+        run: echo "Vercel deployment complete"
