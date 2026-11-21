@@ -1,0 +1,87 @@
+{
+  "Golden: Assessment - capacity constraint": {
+    "response": {
+      "verification": "NOT_APPLICABLE",
+      "action": "PROPOSE",
+      "ask_whom": "NONE",
+      "selected_id": "OPT-2",
+      "state_change_allowed": false,
+      "extracted": {
+        "report_type": "OTHER",
+        "shipment_id": null,
+        "claimed_eta": null,
+        "dock_code": null,
+        "confirms_claim": null
+      },
+      "evidence": [
+        "OPT-2",
+        "8000",
+        "12000",
+        "STANDARD",
+        "feasible_ids: [\"OPT-2\"]"
+      ],
+      "question": null,
+      "reason": "Only OPT-2 passes deterministic feasibility: capacity 12000 kg >= load 8000 kg, dock type STANDARD matches, dock available true."
+    },
+    "case_hash": "78b42c22",
+    "timestamp": "2026-11-21T15:02:10.880057+00:00"
+  },
+  "Golden: Dispatch - ETA constraint": {
+    "response": {
+      "verification": "NOT_APPLICABLE",
+      "action": "PROPOSE",
+      "ask_whom": "NONE",
+      "selected_id": "SL-2",
+      "state_change_allowed": false,
+      "extracted": {
+        "report_type": "ETA_UPDATE",
+        "shipment_id": null,
+        "claimed_eta": "10:30",
+        "dock_code": null,
+        "confirms_claim": null
+      },
+      "evidence": [
+        "feasible_ids: [\"SL-2\"]",
+        "shipment.eta_report: \"10:30\"",
+        "shipment.required_dock_type: \"STANDARD\"",
+        "shipment.expected_unload_min: 60",
+        "SL-2 start: \"11:00\"",
+        "SL-2 end: \"12:30\"",
+        "SL-2 dock_type: \"STANDARD\"",
+        "SL-2 status: \"AVAILABLE\""
+      ],
+      "question": null,
+      "reason": "Only SL-2 passed deterministic feasibility checks; it matches required STANDARD dock type and provides sufficient window after the 10:30 ETA for 60-minute unload."
+    },
+    "case_hash": "b5af5fa1",
+    "timestamp": "2026-11-21T15:02:10.880077+00:00"
+  },
+  "Golden: Triage - safety escalation": {
+    "response": {
+      "verification": "UNVERIFIED",
+      "action": "ESCALATE",
+      "ask_whom": "COORDINATOR",
+      "selected_id": null,
+      "state_change_allowed": false,
+      "extracted": {
+        "report_type": "DOCK_OUTAGE",
+        "shipment_id": null,
+        "claimed_eta": null,
+        "dock_code": "DOCK-B",
+        "confirms_claim": null
+      },
+      "evidence": [
+        "report.type=DOCK_OUTAGE",
+        "report.source=DRIVER",
+        "report.dock_id=DOCK-B",
+        "report.claim=truck broke down at dock",
+        "report.facility_status=ACTIVE",
+        "report.verified_dock_event=null"
+      ],
+      "question": null,
+      "reason": "Driver reports a truck breakdown at DOCK-B, which is a safety incident requiring immediate escalation to the coordinator per policy."
+    },
+    "case_hash": "c0e4c21a",
+    "timestamp": "2026-11-21T15:02:10.880083+00:00"
+  }
+}
