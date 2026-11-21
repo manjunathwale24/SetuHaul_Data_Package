@@ -115,8 +115,12 @@ def _derived_numbers(value: Any) -> set[str]:
                 derived.add(str(to_minutes(end) - to_minutes(start)))
             except ValueError:
                 pass
-        for item in value.values():
-            derived |= _derived_numbers(item)
+        # Add numeric values from dict that look like capacities/weights
+        for k, v in value.items():
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                # Include 0 as a valid derived number for capacity fields
+                derived.add(str(int(v)) if isinstance(v, int) or v == int(v) else str(v))
+            derived |= _derived_numbers(v)
     return derived
 
 
