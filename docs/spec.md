@@ -233,8 +233,8 @@ human escalation before slot planning.
 
 The operations dashboard is served at `/` and `/dashboard`. It polls `GET /activity?now=HH:MM`
 for the seeded Jaipur simulation's dock board, inbound manifest, counters and service audit events.
-The Training Room posts only to `POST /training/agent`; these two deterministic personas are
-explicitly training-only and cannot create operational holds or appointment changes.
+The Training Room posts only to `POST /training/agent`; its four deterministic driver personas and
+facility persona are explicitly training-only and cannot create operational holds or appointment changes.
 
 ## 9. Failure modes and fallbacks
 
@@ -258,6 +258,15 @@ explicitly training-only and cannot create operational holds or appointment chan
 - The brief scenario harness remains scripted; the HTTP service is the closed-loop message flow.
 - Data and runtime state are single-facility, single-day and backed by SQLite. The EKS deployment
   uses one replica and an EBS-backed `gp3` PVC; it is not horizontally scalable.
+- The Kubernetes Deployment uses `replicas: 1` and `Recreate`, with a 2 GiB `ReadWriteOnce` EBS
+  volume, 100m CPU / 256 MiB memory requests, and 1 CPU / 768 MiB limits. The Service is private
+  `ClusterIP`; no HPA or node autoscaler is configured. The HTTP server is threaded, but stateful
+  service work shares one SQLite connection and is serialized by a process-local lock.
+- Do not add application replicas while SQLite is the shared operational store. The process lock
+  does not coordinate across pods, and the EBS claim is not a shared multi-writer database.
+- `/deployment/status` reports the application runtime only. It does not observe EKS, ECR, PVC
+  binding, Deployment rollout conditions, or cluster capacity. A healthy `/health` response is not
+  proof of a completed Kubernetes rollout.
 - Emergency escalation is persisted for a linked shipment, but the prototype does not call emergency
   services or dispatch a real outbound notification.
 - The HTTP API has no caller authentication, inbound provider signature verification, public TLS,
@@ -267,3 +276,45 @@ explicitly training-only and cannot create operational holds or appointment chan
 - The database snapshot contains pre-existing overlapping appointments; `/integrity` reports these
   separately from overlaps created by this service.
 - The NVIDIA client remains optional; when enabled it supplies advice only and does not commit state.
+
+## 11. Scaling strategy
+
+The current deployment is a single-instance pilot. Vertical resource tuning can increase the
+capacity of that pod, but there is no automatic pod or node scaling. Horizontal application scaling
+is gated on moving transactional state out of SQLite.
+
+### Current deployment baseline
+
+| Layer | Current configuration | Scaling implication |
+|---|---|---|
+| Application | One pod; threaded `ThreadingHTTPServer`; one process-local `RLock` around stateful work | Additional HTTP threads do not remove serialized booking work. |
+| State | SQLite on a 2 GiB EBS `gp3` PVC (`ReadWriteOnce`) | Do not run multiple application replicas against this store. |
+| Kubernetes | Deployment `replicas: 1`, `Recreate`; fixed resource requests/limits | No HPA or rolling multi-replica rollout is configured. |
+| Cluster | Existing EKS cluster supplied by the operator | The deployment artifacts do not configure node autoscaling. |
+
+### Scale-out path
+
+1. **Pilot and measure:** keep one replica. Load-test normal and burst traffic, including competing
+   holds, and measure request rate, p95 latency, CPU/memory, SQLite lock contention and booking
+   invariants. Tune pod resources only from those measurements.
+2. **Externalize transactional state:** migrate holds, appointments, message idempotency, and audit
+   state to a shared managed relational database. Preserve database-enforced uniqueness and atomic
+   feasibility/recheck transitions. This requires replacing SQLite-specific SQL and transaction
+   behavior (`PRAGMA`, `BEGIN IMMEDIATE`, custom SQL functions); a connection-string change alone
+   is insufficient. Add connection pooling, schema migrations, backup and recovery procedures.
+3. **Scale application pods:** only after the shared database migration and multi-instance
+   concurrency tests pass, raise replicas behind the Kubernetes Service. Adopt a rolling update
+   strategy, readiness and graceful shutdown/draining. Set minimum/maximum replicas from load tests
+   and availability goals; add an HPA using CPU and, when available, request latency or queue depth.
+4. **Scale cluster compute independently:** configure EKS managed node-group scaling or Karpenter
+   so pending pods can receive capacity. Pod autoscaling changes pod count; node autoscaling changes
+   worker capacity. Neither is currently configured here.
+5. **Decouple bursts if needed:** if message processing or external agent calls become slow or bursty,
+   place durable work on a queue with idempotent workers, per-driver ordering, retries and a
+   dead-letter path. Introduce this based on measured latency/traffic, not as a prerequisite for the
+   single-instance pilot.
+
+**Scale-out gate:** do not enable HPA or increase replicas until shared state, cross-pod concurrency
+and idempotency tests, database recovery, authentication, and ingress/TLS requirements are addressed.
+The EKS target is private `ClusterIP` and the sample API currently has no caller authentication or
+public TLS.

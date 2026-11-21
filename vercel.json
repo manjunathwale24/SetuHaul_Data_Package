@@ -1,0 +1,74 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "dashboard.html", "use": "@vercel/static" },
+    { "src": "deployment_dashboard.html", "use": "@vercel/static" },
+    { "src": "brief_simulation.html", "use": "@vercel/static" },
+    { "src": "observability.html", "use": "@vercel/static" },
+    { "src": "observability.js", "use": "@vercel/static" },
+    { "src": "simulation.html", "use": "@vercel/static" },
+    { "src": "devops-dashboard.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/", "dest": "/dashboard.html" },
+    { "src": "/deployment", "dest": "/deployment_dashboard.html" },
+    { "src": "/dashboard", "dest": "/dashboard.html" },
+    { "src": "/observability", "dest": "/observability.html" },
+    { "src": "/simulation", "dest": "/simulation.html" },
+    { "src": "/devops-dashboard", "dest": "/devops-dashboard.html" },
+    { "src": "/observability.js", "dest": "/observability.js" },
+    { "src": "/observability.js", "dest": "/observability.js" },
+    {
+      "src": "/activity(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/activity$1"
+    },
+    {
+      "src": "/training/agent(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/training/agent$1"
+    },
+    {
+      "src": "/health(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/health$1"
+    },
+    {
+      "src": "/deployment/status(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/deployment/status$1"
+    },
+    {
+      "src": "/integrity(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/integrity$1"
+    },
+    {
+      "src": "/audit(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/audit$1"
+    },
+    {
+      "src": "/board(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/board$1"
+    },
+    {
+      "src": "/shipments/(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/shipments/$1"
+    },
+    {
+      "src": "/holds(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/holds$1"
+    },
+    {
+      "src": "/appointments/(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/appointments/$1"
+    },
+    {
+      "src": "/messages(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/messages$1"
+    },
+    {
+      "src": "/self-healing/(.*)",
+      "dest": "http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/self-healing/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dashboard.html"
+    }
+  ]
+}

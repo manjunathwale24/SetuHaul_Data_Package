@@ -27,8 +27,17 @@ spec:
           type: RuntimeDefault
       containers:
         - name: setuhaul-service
-          image: setuhaul-service:latest
+          image: 883416059014.dkr.ecr.ap-southeast-2.amazonaws.com/setuhaul-service:latest
           imagePullPolicy: IfNotPresent
+          command: ["python", "service.py"]
+          args:
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "8080"
+            - "--db"
+            - "/data/setuhaul.sqlite"
+            - "--live"
           env:
             - name: POD_NAME
               valueFrom:
@@ -38,6 +47,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: NVIDIA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: setuhaul-nvidia-api-key
+                  key: NVIDIA_API_KEY
           ports:
             - name: http
               containerPort: 8080
