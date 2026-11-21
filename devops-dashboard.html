@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0f19">
+  <title>SetuHaul · DevOps Agent</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0f19;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --line: #374151;
+      --muted: #9ca3af;
+      --text: #f3f4f6;
+      --lime: #84cc16;
+      --cyan: #22d3ee;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --violet: #a855f7;
+      --blue: #3b82f6;
+      --radius: 12px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--text); background: var(--bg); }
+    button, select, input { font: inherit; }
+    .app { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex; flex-direction: column; gap: 20px; padding: 24px 16px 18px;
+      background: #0f172a; border-right: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; margin-bottom: 8px; }
+    .brand-mark {
+      width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px;
+      color: #0b1120; background: var(--violet); font-size: 14px; font-weight: 900;
+    }
+    .brand-name { font-size: 15px; font-weight: 700; letter-spacing: -.2px; }
+    .brand-sub { margin-top: 2px; color: var(--muted); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+    .nav-label { padding: 0 10px; color: #6b7280; font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; margin-top: 12px; }
+    .nav { display: grid; gap: 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; color: #cbd5e1;
+      border: 1px solid transparent; border-radius: var(--radius); font-size: 12.5px; text-decoration: none; cursor: pointer;
+    }
+    .nav-item:hover { background: var(--panel-2); border-color: var(--line); color: #fff; }
+    .nav-item.active { color: var(--violet); background: #3b0764; border-color: var(--violet); }
+    .nav-icon { width: 17px; text-align: center; font-size: 15px; }
+    .sidebar-bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); }
+    .agent-badge {
+      display: flex; align-items: center; gap: 8px; padding: 10px; background: #1c1d2e;
+      border: 1px solid var(--line); border-radius: var(--radius); font-size: 11px; color: var(--muted);
+    }
+    .agent-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 10px var(--lime); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    /* Main */
+    .main { min-width: 0; padding: 24px 28px 40px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+    .app-switcher { display: flex; gap: 8px; flex-wrap: wrap; }
+    .nav-btn { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: #94a3b8; font-size: 11px; text-decoration: none; font-weight: 500; }
+    .nav-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .nav-btn.active { border-color: var(--violet); color: var(--violet); background: #3b0764; }
+
+    /* Section */
+    .section { margin-bottom: 26px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .section-title { font-size: 15px; font-weight: 600; color: #e5e7eb; display: flex; align-items: center; gap: 8px; }
+    .section-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* Metric cards */
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 26px; }
+    .metric {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 20px; display: flex; flex-direction: column;
+    }
+    .metric .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .metric .value { font-size: 34px; font-weight: 700; letter-spacing: -1px; margin-bottom: 4px; }
+    .metric .delta { font-size: 11px; margin-top: 4px; }
+    .delta.ok { color: var(--lime); }
+    .delta.warn { color: var(--amber); }
+    .delta.error { color: var(--red); }
+    .delta.neutral { color: var(--muted); }
+    .metric .icon { font-size: 24px; margin-bottom: 12px; }
+
+    /* Controls */
+    .controls { display: flex; gap: 12px; margin-bottom: 26px; flex-wrap: wrap; align-items: flex-end; }
+    .btn {
+      padding: 10px 18px; border-radius: 8px; border: none; font-weight: 600; font-size: 13px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-primary { background: var(--violet); color: #fff; border: 1px solid var(--violet); }
+    .btn-primary:hover { background: #7e22ce; border-color: #7e22ce; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    .btn-secondary:hover { border-color: var(--cyan); color: var(--cyan); }
+    .btn-danger { background: #450a0a; color: #fecaca; border: 1px solid var(--red); }
+    .btn-danger:hover { background: #7f1d1d; border-color: var(--red); }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn.loading {
+      position: relative;
+      color: transparent !important;
+    }
+    .btn.loading::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border: 2px solid currentColor;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+
+    /* Tables */
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th { text-align: left; padding: 12px 14px; color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--line); background: #0f172a; }
+    td { padding: 12px 14px; border-bottom: 1px solid var(--line); color: #e5e7eb; }
+    tr:hover td { background: #141b2a; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;
+    }
+    .badge.critical { background: #7f1d1d; color: #fca5a5; }
+    .badge.high { background: #78350f; color: #fcd34d; }
+    .badge.medium { background: #1e3a8a; color: #bfdbfe; }
+    .badge.low { background: #14532d; color: #bbf7d0; }
+    .badge.ok { background: #14532d; color: #bbf7d0; }
+    .badge.pending { background: #451a03; color: #fbbf24; }
+
+    /* Status row */
+    .status-row {
+      display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      margin-bottom: 16px;
+    }
+    .status-indicator { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .status-indicator.ok { background: var(--lime); box-shadow: 0 0 10px var(--lime); }
+    .status-indicator.warn { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+    .status-indicator.error { background: var(--red); box-shadow: 0 0 10px var(--red); }
+
+    /* Chaos event */
+    .chaos-event {
+      background: #2d1b3e; border: 1px solid #4c1d95; border-radius: var(--radius);
+      padding: 14px 16px; margin-bottom: 10px;
+    }
+    .chaos-event-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .chaos-title { font-weight: 600; color: #e9d5ff; }
+    .chaos-meta { font-size: 11px; color: #a78bfa; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 40px; color: var(--muted); }
+    .empty h3 { color: #e5e7eb; margin-bottom: 8px; }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { flex-direction: row; overflow-x: auto; padding: 12px; gap: 12px; border-right: none; border-bottom: 1px solid var(--line); }
+      .nav { display: flex; gap: 6px; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">DA</div>
+        <div>
+          <div class="brand-name">SetuHaul Delivery Agent</div>
+          <div class="brand-sub">Keeps your delivery system running</div>
+        </div>
+      </div>
+      <div class="nav-label">Dashboards</div>
+      <div class="nav">
+        <div class="nav-item" onclick="location='dashboard.html'">
+          <span class="nav-icon">📊</span> Operations Tower
+        </div>
+        <div class="nav-item" onclick="location='deployment_dashboard.html'">
+          <span class="nav-icon">🚀</span> Deployment
+        </div>
+        <div class="nav-item" onclick="location='observability.html'">
+          <span class="nav-icon">🛡️</span> SOC Observability
+        </div>
+        <div class="nav-item" onclick="location='simulation.html'">
+          <span class="nav-icon">▶</span> Simulation
+        </div>
+        <div class="nav-item active" onclick="location='devops-dashboard.html'">
+          <span class="nav-icon">🤖</span> Delivery Agent
+        </div>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="agent-badge">
+          <div class="agent-dot" id="agentStatusDot"></div>
+          <span>Agent Running</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="app-switcher">
+          <a href="/dashboard" class="nav-btn">◈ Operations Tower</a>
+          <a href="/deployment" class="nav-btn">▤ Deployment</a>
+          <a href="/observability" class="nav-btn">🛡️ SOC Observability</a>
+          <a href="/simulation" class="nav-btn">▶ Simulation</a>
+          <a href="/devops-dashboard" class="nav-btn active">🤖 Delivery Agent</a>
+        </div>
+      </div>
+
+      <!-- Status bar -->
+      <div class="status-row" id="agentStatusRow">
+        <div class="status-indicator ok" id="statusIndicator"></div>
+        <span><strong>Delivery Agent</strong> — <span id="agentStatusText">Checking…</span></span>
+        <span class="mono" id="lastCheck">—</span>
+      </div>
+
+      <!-- Metrics -->
+      <section class="section metrics" id="metricsGrid">
+        <!-- populated by JS -->
+      </section>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="btn btn-primary" id="runAgentBtn">▶ Check for Problems Now</button>
+        <button class="btn btn-secondary btn-sm" id="injectChaosBtn">⚡ Test System (Break Something)</button>
+        <button class="btn btn-secondary btn-sm" id="refreshBtn">↻ Refresh</button>
+        <span class="mono" style="color:var(--muted); font-size:11px">Auto-refresh: 30s</span>
+      </div>
+
+      <!-- What the agent watches (plain English) -->
+      <section class="section">
+        <div class="section-header">
+          <div class="section-title">🔍 What the Agent Watches</div>
+          <div class="section-sub">Automatic checks that run every 5 minutes</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Check</th><th>What it means</th><th>What "bad" looks like</th>
+              </tr>
+            </thead>
+            <tbody id="watchTable">
+              <tr>
+                <td><span class="mono">Delivery service</span></td>
+                <td>Is the tracking app online and answering?</td>
+                <td><span class="badge error">Not responding</span></td>
+              </tr>
+              <tr>
+                <td><span class="mono">Booking integrity</span></td>
+                <td>Are any shipments double-booked for the same dock?</td>
+                <td><span class="badge error">Overlapping appointments</span></td>
+              </tr>
+              <tr>
+                <td><span class="mono">System control center</span></td>
+                <td>Can the agent reach the delivery system backend?</td>
+                <td><span class="badge error">Cannot connect</span></td>
+              </tr>
+              <tr>
+                <td><span class="mono">Delivery workers</span></td>
+                <td>Are delivery worker processes running without crashing?</td>
+                <td><span class="badge error">Crashing / out of memory</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Recent Errors -->
+      <section class="section">
+        <div class="section-header">
+          <div class="section-title">🚨 Recent Problems & Fixes</div>
+          <div class="section-sub">Stored in DynamoDB · 24h retention</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th><th>Where</th><th>Severity</th><th>Problem (plain English)</th><th>What it means</th><th>Fixed?</th>
+              </tr>
+            </thead>
+            <tbody id="errorsTable">
+              <!-- populated by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="errorsEmpty" class="empty" style="display:none;">
+          <h3>No problems recorded</h3>
+          <p>Run the agent to start detecting and fixing issues.</p>
+        </div>
+      </section>
+
+      <!-- Activity Log / Chat Window -->
+      <section class="section" id="activitySection">
+        <div class="section-header">
+          <div class="section-title">💬 Activity Log</div>
+          <div class="section-sub">Real-time feed of agent actions</div>
+        </div>
+        <div class="table-wrap" style="max-height: 300px; overflow-y: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th><th>Level</th><th>Message</th>
+              </tr>
+            </thead>
+            <tbody id="activityLogTable">
+              <!-- populated by JS -->
+            </tbody>
+          </table>
+          <div id="activityEmpty" class="empty" style="display:none; padding: 20px; color: var(--muted);">
+            <h3>No activity yet</h3>
+            <p>The agent will log actions as it monitors and remediates.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Chaos History -->
+      <section class="section">
+        <div class="section-header">
+          <div class="section-title">⚡ System Tests (Chaos Engineering)</div>
+          <div class="section-sub">We deliberately break things to verify the agent can fix them</div>
+        </div>
+        <div id="chaosEvents">
+          <!-- populated by JS -->
+        </div>
+        <div id="chaosEmpty" class="empty" style="display:none;">
+          <h3>No chaos events yet</h3>
+          <p>Chaos engineering runs automatically every hour or can be triggered manually.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      const LAMBDA_URL = 'https://p5ymtoxnwldk5lt4v6wdwn6i6a0fdfof.lambda-url.ap-southeast-2.on.aws/';
+      const statusDot = document.getElementById('agentStatusDot');
+      const statusText = document.getElementById('agentStatusText');
+      const lastCheck = document.getElementById('lastCheck');
+      const statusIndicator = document.getElementById('statusIndicator');
+      const metricsGrid = document.getElementById('metricsGrid');
+      const errorsTable = document.getElementById('errorsTable');
+      const errorsEmpty = document.getElementById('errorsEmpty');
+      const chaosEvents = document.getElementById('chaosEvents');
+      const chaosEmpty = document.getElementById('chaosEmpty');
+      const runBtn = document.getElementById('runAgentBtn');
+      const chaosBtn = document.getElementById('injectChaosBtn');
+      const refreshBtn = document.getElementById('refreshBtn');
+      let isLoading = false;
+
+      // Severity badge class
+      function severityClass(sev) {
+        const s = String(sev).toLowerCase();
+        if (s === 'critical') return 'badge critical';
+        if (s === 'high') return 'badge high';
+        if (s === 'medium') return 'badge medium';
+        if (s === 'low') return 'badge low';
+        return 'badge pending';
+      }
+
+      // Format time
+      function formatTime(iso) {
+        if (!iso) return '—';
+        try {
+          return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } catch (e) { return iso; }
+      }
+
+      // Render metrics
+      function renderMetrics(summary) {
+        metricsGrid.innerHTML = `
+          <div class="metric">
+            <div class="icon">🤖</div>
+            <div class="label">Agent Running</div>
+            <div class="value">${summary.service_healthy ? 'YES' : 'NO'}</div>
+            <div class="delta ${summary.service_healthy ? 'ok' : 'error'}">${summary.service_healthy ? 'All systems operational' : 'Attention needed'}</div>
+          </div>
+          <div class="metric">
+            <div class="icon">🚨</div>
+            <div class="label">Problems Found</div>
+            <div class="value">${summary.total_errors}</div>
+            <div class="delta neutral">Last 24 hours</div>
+          </div>
+          <div class="metric">
+            <div class="icon">✅</div>
+            <div class="label">Auto-Fixed</div>
+            <div class="value">${summary.remediated}</div>
+            <div class="delta neutral">Fixed by agent</div>
+          </div>
+          <div class="metric">
+            <div class="icon">📋</div>
+            <div class="label">Fixes Ready for Review</div>
+            <div class="value">${summary.prs_created}</div>
+            <div class="delta neutral">Waiting on GitHub</div>
+          </div>
+        `;
+      }
+
+      // Plain English explanations for each source
+      function sourceLabel(source) {
+        const labels = {
+          health: 'Delivery service',
+          integrity: 'Booking records',
+          deployment: 'System control center',
+          k8s: 'Delivery workers',
+        };
+        return labels[source] || source;
+      }
+
+      function plainEnglishExplanation(error) {
+        const source = error.source || '';
+        const message = String(error.message || '');
+        const details = typeof error.details === 'string' ? error.details : JSON.stringify(error.details || {});
+
+        if (source === 'health') {
+          if (message.includes('not responding') || message.includes('unreachable')) {
+            return 'The delivery tracking app is offline — drivers and warehouses cannot see updates.';
+          }
+          return 'The delivery tracking app is having problems.';
+        }
+
+        if (source === 'integrity') {
+          if (message.includes('overlap')) {
+            return 'Two shipments are assigned to the same dock at the same time — one needs to be moved.';
+          }
+          if (message.includes('claimed by two shipments')) {
+            return 'A dock slot was double-booked — two trucks think they own the same space.';
+          }
+          if (message.includes('reference missing data')) {
+            return 'Some booking records point to data that no longer exists.';
+          }
+          return 'Booking records have conflicts — shipments may be assigned to unavailable docks.';
+        }
+
+        if (source === 'deployment') {
+          if (message.includes('control center')) {
+            return 'The agent cannot talk to the delivery system backend — checks may be delayed.';
+          }
+          if (message.includes('confirm')) {
+            return 'The system cannot verify that delivery updates were successfully applied.';
+          }
+          return 'There is a problem with the delivery system deployment.';
+        }
+
+        if (source === 'k8s') {
+          if (message.includes('out of memory')) {
+            return 'A delivery worker process used too much memory and stopped working.';
+          }
+          if (message.includes('crashing')) {
+            return 'A delivery worker process keeps crashing and restarting.';
+          }
+          return 'A delivery worker process is having problems.';
+        }
+
+        return message;
+      }
+
+      // Render errors table
+      function renderErrors(errors) {
+        if (!errors || errors.length === 0) {
+          errorsTable.innerHTML = '';
+          errorsEmpty.style.display = 'block';
+          return;
+        }
+        errorsEmpty.style.display = 'none';
+        errorsTable.innerHTML = errors.map(e => {
+          const time = formatTime(e.timestamp);
+          const sevCls = severityClass(e.severity);
+          const remediatedCls = e.remediated ? 'badge ok' : 'badge pending';
+          const explanation = plainEnglishExplanation(e);
+          return `
+            <tr>
+              <td><span class="mono">${time}</span></td>
+              <td><span class="mono" style="font-size:11px">${sourceLabel(e.source)}</span></td>
+              <td><span class="${sevCls}">${e.severity || '—'}</span></td>
+              <td><span class="mono" style="font-size:11px">${e.message || '—'}</span></td>
+              <td><span style="font-size:11px;color:#9ca3af">${explanation}</span></td>
+              <td><span class="${remediatedCls}">${e.remediated ? 'Yes' : 'No'}</span></td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Render chaos events
+      function renderChaos(chaos) {
+        if (!chaos || !chaos.action_taken) {
+          chaosEvents.innerHTML = '';
+          chaosEmpty.style.display = 'block';
+          return;
+        }
+        chaosEmpty.style.display = 'none';
+        const sevCls = severityClass(chaos.severity);
+        const html = `
+          <div class="chaos-event">
+            <div class="chaos-event-header">
+              <div class="chaos-title">${chaos.name}</div>
+              <span class="${sevCls}">${chaos.severity}</span>
+            </div>
+            <div class="chaos-meta">
+              Scenario: <span class="mono">${chaos.scenario}</span> &bull;
+              Action: <span class="mono">${chaos.action_taken ? 'Injected' : 'Blocked'}</span> &bull;
+              ${formatTime(new Date().toISOString())}
+            </div>
+            <div style="margin-top:8px; font-size:11px; color:#9ca3af">
+              Details: <span class="mono">${JSON.stringify(chaos.details || {}).slice(0, 120)}</span>
+            </div>
+          </div>
+        `;
+        chaosEvents.innerHTML = html;
+      }
+
+      // Render activity log table
+      function renderActivity(activityEntries, totalEntries) {
+        const activityLogTable = document.getElementById('activityLogTable');
+        const activityEmpty = document.getElementById('activityEmpty');
+
+        if (!activityEntries || activityEntries.length === 0) {
+          activityLogTable.innerHTML = '';
+          activityEmpty.style.display = 'block';
+          return;
+        }
+        activityEmpty.style.display = 'none';
+
+        // Show last 20 entries in the table
+        const recent = activityEntries.slice(-20);
+        activityLogTable.innerHTML = recent.map(e => {
+          const time = formatTime(e.ts);
+          const levelCls = e.level === 'error' ? 'badge critical' : e.level === 'warning' ? 'badge high' : 'badge ok';
+          return `
+            <tr>
+              <td><span class="mono" style="font-size:10px">${time}</span></td>
+              <td><span class="${levelCls}" style="font-size:10px">${e.level.toUpperCase()}</span></td>
+              <td><span style="font-size:10px; color:var(--muted)">${e.message}</span></td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Fetch status from Lambda with robust CORS handling
+      async function fetchStatus() {
+        if (isLoading) return;
+        isLoading = true;
+        refreshBtn.classList.add('loading');
+        refreshBtn.setAttribute('aria-busy', 'true');
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+          const resp = await fetch(LAMBDA_URL, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Origin': 'https://setuhaul-ui.vercel.app',
+            },
+            body: JSON.stringify({ source: 'get_status' }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const result = await resp.json();
+
+          // Handle both API Gateway format ({statusCode, body}) and direct Function URL format
+          let body;
+          if (result && result.statusCode !== undefined && result.body !== undefined) {
+            body = typeof result.body === 'string' ? JSON.parse(result.body) : result.body;
+          } else {
+            body = result;
+          }
+
+          // Update status bar
+          statusDot.className = 'agent-dot';
+          statusText.textContent = body.summary.service_healthy ? 'All systems operational' : 'Issues detected';
+          statusText.style.color = body.summary.service_healthy ? 'var(--lime)' : 'var(--red)';
+          lastCheck.textContent = new Date(body.timestamp).toLocaleTimeString();
+          statusIndicator.className = body.summary.service_healthy ? 'status-indicator ok' : 'status-indicator error';
+
+          // Render
+          renderMetrics(body.summary);
+          renderErrors(body.recent_errors);
+          renderChaos(body.chaos);
+          renderActivity(body.activity_log, body.total_entries);
+
+        } catch (err) {
+          if (err.name === 'AbortError') {
+            statusText.textContent = 'Request timed out';
+          } else {
+            console.error('Status fetch failed:', err);
+            statusText.textContent = 'Connection error';
+          }
+          statusText.style.color = 'var(--red)';
+          statusIndicator.className = 'status-indicator error';
+        } finally {
+          isLoading = false;
+          refreshBtn.classList.remove('loading');
+          refreshBtn.setAttribute('aria-busy', 'false');
+        }
+      }
+
+      // Fetch activity log from Lambda
+      async function fetchActivityLog() {
+        if (isLoading) return;
+        isLoading = true;
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+          const resp = await fetch(LAMBDA_URL, {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Origin': 'https://setuhaul-ui.vercel.app',
+            },
+            body: JSON.stringify({ source: 'get_activity' }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const result = await resp.json();
+
+          // Handle both API Gateway format and direct Function URL format
+          let body;
+          if (result && result.statusCode !== undefined && result.body !== undefined) {
+            body = typeof result.body === 'string' ? JSON.parse(result.body) : result.body;
+          } else {
+            body = result;
+          }
+
+          renderActivity(body.activity_log, body.total_entries);
+        } catch (err) {
+          console.error('Activity log fetch failed:', err);
+          // Don't show error UI, just keep last known state
+        } finally {
+          isLoading = false;
+        }
+      }
+
+      // Helper to extract body from Lambda response
+      function extractBody(result) {
+        if (result && result.statusCode !== undefined && result.body !== undefined) {
+          return typeof result.body === 'string' ? JSON.parse(result.body) : result.body;
+        }
+        return result;
+      }
+
+      // Run agent (monitoring cycle)
+      async function runAgent() {
+        runBtn.disabled = true;
+        runBtn.textContent = 'Running…';
+        try {
+          const resp = await fetch(LAMBDA_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Origin': 'https://setuhaul-ui.vercel.app',
+            },
+            body: JSON.stringify({ source: 'manual' }),
+          });
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const result = await resp.json();
+          const body = extractBody(result);
+          alert(`Agent cycle complete!\n\nFailures: ${body.summary.failures_detected}\nRemediated: ${body.summary.remediations_successful}\nPRs: ${body.summary.prs_created}\nChaos: ${body.summary.chaos_injected}`);
+          await fetchStatus();
+        } catch (err) {
+          console.error('Run agent failed:', err);
+          alert('Failed to run agent: ' + err.message);
+        } finally {
+          runBtn.disabled = false;
+          runBtn.textContent = '▶ Run Agent Now';
+        }
+      }
+
+      // Inject chaos
+      async function injectChaos() {
+        chaosBtn.disabled = true;
+        chaosBtn.textContent = 'Injecting…';
+        try {
+          const resp = await fetch(LAMBDA_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Origin': 'https://setuhaul-ui.vercel.app',
+            },
+            body: JSON.stringify({ source: 'chaos', chaos: true }),
+          });
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          const result = await resp.json();
+          const body = extractBody(result);
+          if (body.chaos && body.chaos.action_taken) {
+            alert(`Chaos injected!\n\nScenario: ${body.chaos.name}\nSeverity: ${body.chaos.severity}\nDetails: ${JSON.stringify(body.chaos.details)}`);
+          } else {
+            alert('Chaos injection skipped or no action taken.');
+          }
+          await fetchStatus();
+        } catch (err) {
+          console.error('Chaos injection failed:', err);
+          alert('Chaos injection failed: ' + err.message);
+        } finally {
+          chaosBtn.disabled = false;
+          chaosBtn.textContent = '⚡ Inject Chaos';
+        }
+      }
+
+      // Init
+      fetchStatus();
+      fetchActivityLog();
+      setInterval(fetchStatus, 30000);
+      setInterval(fetchActivityLog, 15000);
+
+      runBtn.addEventListener('click', runAgent);
+      chaosBtn.addEventListener('click', injectChaos);
+      refreshBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        fetchStatus();
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10141d">
+  <title>SetuHaul · Control Tower · Airport Ops</title>
+  <style>
+    /* =========================================================================
+       AIRPORT CONTROL TOWER THEME
+       ========================================================================= */
+    :root {
+      color-scheme: dark;
+      --bg: #0a0d12;
+      --panel: #0f1421;
+      --panel-2: #1a2338;
+      --line: #2c3e58;
+      --muted: #5d6d7e;
+      --text: #e8edf5;
+      --lime: #00ff88;
+      --cyan: #00d4ff;
+      --amber: #ffb84d;
+      --red: #ff5252;
+      --violet: #a259ff;
+      --blue: #00aaff;
+      --radius: 12px;
+      --glow-duration: 3s;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--text); background: var(--bg); }
+    button, select, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    html { scroll-behavior: smooth; }
+
+    /* =========================================================================
+       FULL-SCREEN APP LAYOUT
+       ========================================================================= */
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
+
+    /* =========================================================================
+       HEADER / TOP BAR
+       ========================================================================= */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; background: linear-gradient(135deg, #0f0f23, #1a1a3e);
+      border-bottom: 1px solid var(--line); color: var(--text);
+    }
+    .topbar .title {
+      font-size: 20px; font-weight: 700; letter-spacing: -1px;
+      background: linear(135deg, var(--lime), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .topbar .time {
+      color: var(--lime); font-weight: 600; margin-left: 12px;
+      animation: pulse-glow 2s infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { text-shadow: 0 0 8px var(--lime); }
+      50% { text-shadow: 0 0 20px var(--lime), 0 0 35px var(--cyan); }
+    }
+
+    /* =========================================================================
+       SIDEBAR NAVIGATION
+       ========================================================================= */
+    .sidebar {
+      width: 60px; min-height: 100vh; background: linear-gradient(180deg, #0d0f16, #1a1f2e);
+      border-right: 1px solid var(--line); flex-shrink: 0;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding-top: 20px; position: sticky; top: 0;
+    }
+    .sidebar .nav-btn {
+      width: 44px; height: 44px; display: grid; place-items: center;
+      background: transparent; border: none; padding: 8px;
+      color: var(--muted); border-radius: var(--radius);
+      margin: 4px; transition: all 0.2s;
+      font-size: 20px;
+    }
+    .sidebar .nav-btn:hover { background: var(--panel); color: var(--lime); transform: scale(1.1); }
+    .sidebar .nav-btn.active { background: rgba(0, 255, 136, 0.15); color: var(--lime); box-shadow: 0 0 15px rgba(0, 255, 136, 0.4); }
+    .sidebar .nav-btn .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); position: absolute; top: 4px; right: 4px; display: none; }
+    .sidebar .nav-btn.active .dot { display: block; }
+
+    /* Expanded sidebar on large screens */
+    @media (min-width: 900px) {
+      .sidebar { width: 200px; padding: 20px 16px; justify-content: flex-start; }
+      .sidebar .nav-btn { width: auto; height: auto; padding: 6px 12px; font-size: 12px; }
+      .sidebar .nav-btn .dot { display: none; }
+      .sidebar .brand { padding: 8px 12px; }
+    }
+    .brand { text-align: center; margin-bottom: 30px; }
+    .brand .logo { width: 40px; height: 40px; background: linear-gradient(135deg, var(--lime), var(--cyan)); border-radius: var(--radius); display: grid; place-items: center; font-size: 20px; font-weight: bold; margin: 0 auto 8px; }
+    .brand .name { color: var(--cyan); font-size: 14px; font-weight: 600; }
+    .brand .sub { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+    /* =========================================================================
+       MAIN CONTENT AREA
+       ========================================================================= */
+    .main { flex: 1; padding: 24px; max-width: 1800px; width: 100%; }
+
+    /* =========================================================================
+       TIMELAPSE CONTROL PANEL
+       ========================================================================= */
+    .timelapse-panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 20px; margin-bottom: 24px; position: relative;
+    }
+    .timelapse-panel::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, var(--lime), transparent);
+    }
+    .timelapse-panel h3 { margin: 0 0 12px 0; font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+    .timelapse-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 12px; }
+    .timelapse-btn {
+      padding: 10px 16px; border: 1px solid var(--line); border-radius: 8px;
+      background: var(--panel); color: var(--text); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+      transition: all 0.3s; min-width: 130px;
+    }
+    .timelapse-btn:hover { border-color: var(--lime); color: var(--lime); background: rgba(0, 255, 136, 0.1); }
+    .timelapse-btn.active { border-color: var(--lime); background: rgba(0, 255, 136, 0.2); color: var(--lime); }
+    .timelapse-btn.stop { background: rgba(255, 82, 82, 0.2); color: var(--red); border-color: var(--red); }
+    .timelapse-speed { color: var(--muted); font-size: 11px; margin-top: 4px; }
+    .timelapse-speed span { display: inline-block; width: 30px; text-align: center; margin: 0 2px; }
+    .speed-1x { background: var(--panel); border: 1px solid var(--line); }
+    .speed-480x { background: var(--lime); color: #0a0a0a; border-color: var(--lime); }
+
+    /* =========================================================================
+       STATUS SUMMARY CARDS
+       ========================================================================= */
+    .summary-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;
+    }
+    .summary-card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 16px; position: relative; overflow: hidden;
+    }
+    .summary-card::after {
+      content: ''; position: absolute; top: 0; right: 0; width: 4px; height: 0;
+      background: var(--lime); transition: height 0.5s;
+    }
+    .summary-card:hover .progress-bar { width: 100%; }
+    .summary-card.alert::after { background: var(--red); }
+    .summary-card.live::after { background: var(--lime); }
+    .summary-card.critical::after { background: var(--amber); }
+    .summary-card .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; display: block; }
+    .summary-card .value { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .summary-card .detail { font-size: 11px; color: var(--muted); }
+
+    /* =========================================================================
+       AIRPORT DOCK BOARD (Animated)
+       ========================================================================= */
+    .airport-board { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+                   padding: 20px; min-height: 420px; position: relative; overflow: hidden; }
+    .airport-board::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: 
+        radial-gradient(ellipse at 20% 20%, rgba(0,255,136,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(0,212,255,0.05) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .airport-board .title {
+      font-size: 13px; text-transform: uppercase; letter-spacing: 2px; color: var(--muted);
+      margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--line);
+    }
+    .airport-board .legend {
+      display: flex; gap: 20px; margin-bottom: 12px; font-size: 11px; color: var(--muted);
+    }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .legend-dot.free { background: #39495a; }
+    .legend-dot.booked { background: var(--cyan); }
+    .legend-dot.held { background: var(--amber); }
+    .legend-dot.request { background: var(--lime); }
+    .legend-dot.blocked { background: #5a3b3f; }
+    .board-grid {
+      display: grid;
+      /* 28 slots per row, 48px for dock label + 3px gap */
+      grid-template-columns: 48px repeat(28, minmax(0, 1fr)); gap: 3px;
+      min-width: 1000px; height: 40px; margin-top: 8px;
+    }
+    .board-grid .dock-label {
+      color: var(--muted); font-size: 9px; font-weight: 700; padding: 4px 6px;
+      background: #101820; border-radius: 4px; text-align: center;
+    }
+    .slot {
+      position: relative; height: 36px; border-radius: 5px; border: 1px solid #2c3e58;
+      transition: background 0.3s, border-color 0.3s; cursor: default;
+    }
+    .slot.free { background: #1a2a3a; }
+    .slot.booked { background: var(--cyan); color: #0a0a0a; }
+    .slot.held { background: var(--amber); color: #0a0a0a; animation: hold-shimmer 2s infinite; }
+    .slot.request { background: var(--lime); color: #0a0a0a; animation: request-flash 1s infinite; }
+    .slot.blocked { background: #3a252a; color: #ffe5e7; }
+    .slot .slot-tooltip {
+      position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(4px);
+      font-size: 9px; padding: 4px 6px; background: #1a2a3a; color: var(--text);
+      border-radius: 4px; white-space: nowrap; opacity: 0; pointer-events: none;
+      transition: opacity 0.2s; white-space: nowrap;
+    }
+    .slot:hover .slot-tooltip { opacity: 1; }
+    @keyframes hold-shimmer { 0%, 100% { background: linear-gradient(90deg, var(--amber), #ffd870); }
+      50% { background: var(--amber); } }
+    @keyframes request-flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    /* Flying aircraft icon animation */
+    .aircraft {
+      position: absolute; width: 30px; height: 30px; background: var(--lime);
+      border-radius: 50%; box-shadow: 0 0 20px var(--lime); opacity: 0;
+      transform: translateX(-100%); animation: fly-across 8s linear infinite;
+      pointer-events: none;
+    }
+    @keyframes fly-across {
+      0% { transform: translateX(-100%); opacity: 1; }
+      100% { transform: translateX(110%); opacity: 0; }
+    }
+
+    /* =========================================================================
+       LIVE ACTIVITY FEED
+       ========================================================================= */
+    .activity-feed { background: var(--panel); border: 1px solid var(--line);
+                    border-radius: var(--radius); padding: 20px; height: 300px; overflow-y: auto; }
+    .activity-feed .empty { color: var(--muted); padding: 20px; font-size: 12px; }
+    .activity-item {
+      display: grid; grid-template-columns: 32px 1fr; gap 8px; padding: 8px 0; border-bottom: 1px solid #2c3e58;
+      animation: fade-in-up 0.3s ease; color: var(--text);
+    }
+    .activity-item:last-child { border-bottom: 0; }
+    @keyframes fade-in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .activity-icon {
+      width: 28px; height: 28px; display: grid; place-items-center; border-radius: 6px;
+      font-size: 12px; font-weight: bold; margin-right: 6px;
+    }
+    .activity-icon.triage { background: rgba(0, 255, 136, 0.2); color: var(--lime); }
+    .activity-icon.dispatch { background: rgba(0, 212, 255, 0.2); color: var(--cyan); }
+    .activity-icon.assessment { background: rgba(162, 89, 255, 0.2); color: var(--violet); }
+    .activity-text { font-size: 11px; line-height: 1.4; }
+    .activity-text b { color: var(--lime); }
+    .activity-meta { font-size: 9px; color: var(--muted); margin-top: 2px; }
+
+    /* =========================================================================
+       AGENT CHANNEL TRANSCRIPT
+       ========================================================================= */
+    .agent-channel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+                   padding: 20px; height: 280px; overflow-y: auto; margin-top: 24px; }
+    .agent-channel .head {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px;
+      border-bottom: 1px solid var(--line); font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted);
+    }
+    .agent-channel .badge {
+      padding: 4px 8px; border-radius: 6px; font-size: 9px; font-weight: 700; text-transform: uppercase;
+      color: var(--text); background: rgba(255,255,255,0.08);
+    }
+    .badge.triage { background: rgba(0, 255, 136, 0.2); color: var(--lime); border: 1px solid rgba(0,255,136,0.3); }
+    .badge.dispatch { background: rgba(0, 212, 255, 0.2); color: var(--cyan); border: 1px solid rgba(0,212,255,0.3); }
+    .badge.assessment { background: rgba(162, 89, 255, 0.2); color: var(--violet); border: 1px solid rgba(162,89,255,0.3); }
+    .agent-transcript { height: 220px; overflow-y: auto; padding-right: 8px; }
+    .agent-msg {
+      display: grid; grid-template-columns: 40px 1fr; gap 8px; padding: 6px 0; margin: 4px 0;
+      animation: msg-in 0.2s ease; font-size: 10px;
+    }
+    @keyframes msg-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
+    .agent-msg .who { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+    .agent-msg .who.triage { color: var(--lime); }
+    .agent-msg .who.dispatch { color: var(--cyan); }
+    .agent-msg .who.assessment { color: var(--violet); }
+    .agent-msg .text { color: var(--text); line-height: 1.3; font-size: 9px; }
+    .agent-msg .detail { font-size: 8px; color: var(--muted); margin-top: 2px; }
+
+    /* =========================================================================
+       FLIGHT METER / PROGRESS VISUALIZER
+       ========================================================================= */
+    .flight-meter { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+                   padding: 20px; margin-top: 24px; position: relative; overflow: hidden; }
+    .flight-meter .track {
+      height: 10px; background: #1a2a3a; border-radius: 5px; overflow: hidden; margin: 10px 0;
+    }
+    .flight-meter .progress {
+      height: 100%; background: linear-gradient(90deg, var(--lime), var(--cyan)); width: 0%;
+      transition: width 0.5s ease; position: relative;
+    }
+    .flight-meter .progress::after {
+      content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 12px;
+      background: repeating-radial-gradient(circle, var(--lime), var(--cyan), var(--lime) 2px, transparent 4px);
+      border-radius: 50%; animation: beat 1s infinite;
+    }
+    @keyframes beat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.3); } }
+    .flight-meter .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
+    .flight-meter .time-remaining { position: absolute; bottom: 8px; right: 12px; font-size: 10px; color: var(--muted); }
+    .flight-meter .percentage { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+                               font-size: 24px; font-weight: 700; color: var(--lime); }
+
+    /* =========================================================================
+       RESPONSIVE
+       ========================================================================= */
+    @media (max-width: 900px) {
+      .app { flex-direction: column; }
+      .main { padding: 16px; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .board-grid { grid-template-columns: 36px repeat(20, minmax(0, 1fr)); min-width: 600px; }
+      .airport-board { min-height: 300px; }
+    }
+    @media (max-width: 600px) {
+      .topbar { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .sidebar { display: none; }
+      .timelapse-controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Airport Background Animation -->
+  <div class="bg-animation" style="position: fixed; inset-0; pointer-events: none; z-index: -1;">
+    <div style="position: absolute; top: -50%; left: -50%; width: 300%; height: 300%; background: 
+      radial-gradient(ellipse at 30% 20%, rgba(0,255,136,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 70% 80%, rgba(0,212,255,0.05) 0%, transparent 50%);
+   "></div>
+    <div class="grid-pattern" style="position: absolute; inset: 0; background: 
+      repeating-linear-gradient(45deg, rgba(44,62,88,0.3) 0px, rgba(44,62,88,0.3) 1px, 
+       rgba(26,42,72,0.3) 2px, rgba(26,42,72,0.3) 4px);
+      mask-image: radial-gradient(ellipse at 50% 50%, white 20%, transparent 70%);">
+      <div style="animation: grid-slide 20s linear infinite; width: 100%; height: 100%;">
+        <div style="position: absolute; width: 20px; height: 20px; background: rgba(0,255,136,0.1); 
+          left: -100%; top: 50%; transform: translateY(-50%); animation: slide-down 15s linear infinite;"></div>
+        <div style="position: absolute; width: 20px; height: 20px; background: rgba(0,212,255,0.1); 
+          right: -100%; bottom: 50%; transform: translateY(50%); animation: slide-up 12s linear infinite;"></div>
+      </div>
+    </div>
+    <style>
+      @keyframes grid-slide { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+      @keyframes slide-down { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+      @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+      .float { animation: float 6s ease-in-out infinite; }
+    </style>
+  </div>
+
+  <div class="app">
+    <!-- Header -->
+    <header class="topbar">
+      <div class="title">⚡ CONTROL TOWER</div>
+      <div class="time" id="sim-time">--:-- IST</div>
+    </header>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">SH</div>
+        <div><div class="name">SetuHaul</div><div class="sub">Airport Operations Center</div></div>
+      </div>
+      <div class="nav-label">Ops</div>
+      <nav class="nav">
+        <button class="nav-btn active" aria-label="Dashboard" title="Dashboard">
+          <span class="dot"></span><span>Tower</span>
+        </button>
+        <button class="nav-btn" aria-label="Flights" title="Live Agents">
+          <span class="dot"></span><span>Agents</span>
+        </button>
+        <button class="nav-btn" aria-label="Schedule" title="Dock Board">
+          <span class="dot"></span><span>Board</span>
+        </button>
+        <button class="nav-btn" aria-label="Activity" title="Activity Feed">
+          <span class="dot"></span><span>Feed</span>
+        </button>
+        <button class="nav-btn" aria-label="Settings" title="Simulation Control">
+          <span class="dot"></span><span>Sim</span>
+        </button>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <!-- Timelapse Control Panel -->
+      <section class="timelapse-panel">
+        <h3>⏱️ 24h Faculty Activity Simulation</h3>
+        <div class="timelapse-controls">
+          <button class="timelapse-btn active" data-speed="1x" onclick="setSpeed(1)">1x Real</button>
+          <button class="timelapse-btn active" data-speed="480x" onclick="setSpeed(480)">480x Fast</button>
+          <button class="timelapse-btn stop" data-speed="0" onclick="stopSim()">Stop</button>
+          <div class="timelapse-speed">Speed: <span class="speed-1x active" data-val="1">1x</span><span class="speed-480x" data-val="480">480x</span></div>
+        </div>
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line);">
+          <div>Simulated: <span id="sim-progress">0%</span> (<span id="sim-elapsed">0:00</span> / <span id="sim-total">24:00</span>)</div>
+          <div>Real elapsed: <span id="real-elapsed">0:00</span></div>
+        </div>
+      </section>
+
+      <!-- Summary Cards -->
+      <section class="summary-grid" id="summary-grid">
+        <!-- Cards populated by JS -->
+      </section>
+
+      <!-- Airport Dock Board -->
+      <section class="airport-board" id="dock-board">
+        <div class="title">Dock Flow — Jaipur Distribution Center</div>
+        <div class="legend">
+          <span><div class="legend-dot free"></div>Free Slot</span>
+          <span><div class="legend-dot booked"></div>Booked / Active</span>
+          <span><div class="legend-dot held"></div>Held (10 min)</span>
+          <span><div class="legend-dot request"></div>Requested</span>
+          <span><div class="legend-dot blocked"></div>Blocked / Maint</span>
+        </div>
+        <div class="board-grid" id="board-grid"></div>
+      </section>
+
+      <!-- Live Activity Feed -->
+      <section class="activity-feed" id="activity-feed">
+        <div class="empty">Initializing live activity feed…</div>
+      </section>
+
+      <!-- Agent Channel Transcript -->
+      <section class="agent-channel" id="agent-channel">
+        <div class="head">
+          <span>Live Agent Channel · Triage → Dispatch → Assessment</span>
+          <span class="badge triage">TRIAGE</span>
+          <span class="badge dispatch">DISPATCH</span>
+          <span class="badge assessment">ASSESSMENT</span>
+        </div>
+        <div class="agent-transcript" id="agent-transcript">
+          <div class="empty" style="font-size: 12px;">Waiting for agent activity…</div>
+        </div>
+      </section>
+
+      <!-- Flight Meter / Progress Visualizer -->
+      <section class="flight-meter" id="flight-meter">
+        <div class="track">
+          <div class="progress" id="progress-bar"></div>
+        </div>
+        <div class="label">24h Faculty Activity → 3min Playback</div>
+        <div class="percentage" id="percentage">0%</div>
+        <div class="time-remaining" id="time-remaining">0:00 / 24:00</div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // =========================================================================
+    // STATE & CONFIGURATION
+    // =========================================================================
+    const STATE = {
+      speed: 1,           // 1 = real-time, 480 = 24h in 3min
+      simTime: 0,         // minutes (0-1440 for 24h)
+      realStart: 0,       // wall clock start
+      isRunning: false,
+      tickInterval: null
+    };
+
+    const SIMULATION = {
+      totalMinutes: 1440,   // 24 hours
+      compression: 480,     // 24h compressed into 3 minutes real time
+      realPerSimMinute: 1 / 480  // wall seconds per simulated minute
+    };
+
+    // =========================================================================
+    // INITIALIZATION
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', init);
+
+    async function init() {
+      STATE.realStart = performance.now();
+      STATE.realEl = document.getElementById('real-elapsed');
+      STATE.simEl = document.getElementById('sim-progress');
+      STATE.simElapsed = document.getElementById('sim-elapsed');
+      STATE.simTotal = document.getElementById('sim-total');
+      STATE.progress = document.getElementById('progress-bar');
+      STATE.percentage = document.getElementById('percentage');
+      STATE.timeRemaining = document.getElementById('time-remaining');
+      STATE.simTimeEl = document.getElementById('sim-time');
+      STATE.boardGrid = document.getElementById('board-grid');
+      STATE.feed = document.getElementById('activity-feed');
+      STATE.agentTranscript = document.getElementById('agent-transcript');
+
+      // Initial data load
+      await refreshAll();
+
+      // Start timelapse loop
+      START_TIMELAPSE_LOOP();
+    }
+
+    // =========================================================================
+    // TIMELAPSE LOOP
+    // =========================================================================
+    function START_TIMELAPSE_LOOP() {
+      if (STATE.tickInterval) clearInterval(STATE.tickInterval);
+      STATE.isRunning = true;
+      STATE.tick = 0;
+      STATE.lastSim = STATE.simTime;
+      STATE.wallStart = performance.now();
+
+      STATE.tickInterval = setInterval(() => tick(), 1000 / 60); // 60fps loop
+    }
+
+    function tick() {
+      if (!STATE.isRunning) return;
+
+      const now = performance.now();
+      const elapsedWallMs = now - STATE.wallStart;
+      // Advance sim time based on speed multiplier
+      const simMinutesToAdvance = (elapsedWallMs / 1000) * STATE.speed / SIMULATION.realPerSimMinute;
+      STATE.simTime = (STATE.simTime + simMinutesToAdvance) % SIMULATION.totalMinutes;
+      STATE.tick++;
+
+      // Update UI every simulated minute or every 60 ticks
+      if (STATE.tick % 60 === 0 || STATE.simTime % 1 < 0.01) {
+        updateUI();
+      }
+
+      // Complete loop after full simulation
+      if (STATE.simTime === 0 && STATE.lastSim > 0) {
+        // One full cycle complete
+        STATE.lastSim = STATE.simTime;
+      }
+    }
+
+    function setSpeed(speed) {
+      // Stop any running sim
+      STATE.speed = speed;
+      STATE.isRunning = true;
+
+      // Update button states
+      document.querySelectorAll('.timelapse-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.speed) === speed);
+      });
+
+      // Reset simulation position
+      STATE.simTime = 0;
+      STATE.tick = 0;
+      STATE.wallStart = performance.now();
+      updateUI();
+    }
+
+    function stopSim() {
+      STATE.isRunning = false;
+      if (STATE.tickInterval) { clearInterval(STATE.tickInterval); STATE.tickInterval = null; }
+      // Reset UI
+      STATE.simTime = 0;
+      STATE.speed = 1;
+      document.querySelectorAll('.timelapse-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.speed === '1x') btn.classList.add('active');
+      });
+      updateUI();
+    }
+
+    // =========================================================================
+    // UI UPDATE FUNCTION
+    // =========================================================================
+    function updateUI() {
+      const simPercent = (STATE.simTime / SIMULATION.totalMinutes) * 100;
+      const realElapsedSec = (performance.now() - STATE.realStart) / 1000;
+      const realMin = realElapsedSec / 60;
+      const simMin = STATE.simTime;
+      const simSec = Math.round(simMin % 1 * 60);
+      const simDisplayMin = Math.floor(simMin);
+      const simDisplaySec = simSec < 10 ? '0' + simSec : simSec;
+
+      // Progress bar and percentage
+      STATE.progress.style.width = `${simPercent}%`;
+      STATE.percentage.textContent = `${Math.round(simPercent)}%`;
+      STATE.simEl.textContent = `${simPercent.toFixed(1)}%`;
+      STATE.simElapsed.textContent = `${simDisplayMin}:${simDisplaySec}`;
+      STATE.simTotal.textContent = `24:00`;
+      STATE.timeRemaining.textContent = `${(SIMULATION.totalMinutes - simMin):02d}:${simDisplaySec}`;
+
+      // Update sim time display
+      const hh = Math.floor(simDisplayMin / 60);
+      const mm = simDisplayMin % 60;
+      STATE.simTimeEl.textContent = `${hh < 10 ? '0' : ''}${hh}:${mm < 10 ? '0' : ''}${mm} IST`;
+
+      // Update summary cards
+      updateSummaryCards(simPercent);
+
+      // Move aircraft across the top
+      const aircrafts = document.querySelectorAll('.aircraft');
+      aircrafts.forEach((ac, i) => {
+        const left = (i / aircrafts.length) * 100;
+        ac.style.left = `${left}%`;
+      });
+    }
+
+    function updateSummaryCards(simPercent) {
+      const cards = {
+        active: Math.round(85 + 10 * Math.sin(simPercent * Math.PI / 50)),
+        handled: Math.round(70 + 20 * Math.cos(simPercent * Math.PI / 50)),
+        alerts: Math.round(15 + 10 * Math.sin(simPercent * Math.PI / 30)),
+        critical: Math.round(5 + 3 * Math.sin(simPercent * Math.PI / 15))
+      };
+
+      const grid = document.getElementById('summary-grid');
+      if (!grid.innerHTML) {
+        grid.innerHTML = `
+          <article class="summary-card live" title="Active Faculty/Drivers">
+            <div class="label">Active</div><div class="value">${cards.active}</div><div class="detail">faculty/drivers active</div>
+            <div class="progress-bar" style="width:0%"></div>
+          </article>
+          <article class="summary-card alert" title="Alerts & Exceptions">
+            <div class="label">Alerts</div><div class="value">${cards.alerts}</div><div class="detail">priority issues</div>
+          </article>
+          <article class="summary-card critical" title="Critical Incidents">
+            <div class="label">Critical</div><div class="value">${cards.critical}</div><div class="detail">escalations</div>
+          </article>
+          <article class="summary-card" title="Handled Cases">
+            <div class="label">Handled</div><div class="value">${cards.handled}</div><div class="detail">resolved cases</div>
+          </article>
+        `;
+      }
+    }
+
+    // =========================================================================
+    // REFRESH DATA FROM API
+    // =========================================================================
+    async function refreshAll() {
+      try {
+        // Fetch live activity data
+        await refreshActivityFeed();
+        // Refresh dock board
+        await refreshDockBoard();
+        // Refresh agent channel
+        await refreshAgentChannel();
+        // Update flight meter
+        updateFlightMeter();
+      } catch (err) {
+        console.error('Refresh error:', err);
+      }
+    }
+
+    async function refreshActivityFeed() {
+      const feed = document.getElementById('activity-feed');
+      feed.innerHTML = `<div class="empty">Loading activity feed…</div>`;
+
+      try {
+        const resp = await fetch('/activity?now=12:45', { cache: 'no-store' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        if (!data.activity || data.activity.length === 0) {
+          feed.innerHTML = `<div class="empty">No activity recorded. Start timelapse to generate events.</div>`;
+          return;
+        }
+
+        feed.innerHTML = data.activity.slice(0, 20).map((ev, i) => {
+          const ts = ev.time || '—';
+          const action = String(ev.action || '').replaceAll('_', ' ').toLowerCase();
+          const actor = ev.actor || 'system';
+          const category = /ESCALAT|REJECT|SAFETY/.test(ev.action) ? 'alert' : /CONFIRMED|CREATED/.test(ev.action) ? 'good' : '';
+          const icon = category === 'alert' ? '!' : category === 'good' ? '✓' : '↗';
+          const cls = category === 'alert' ? 'activity-icon alert triage' :
+                     category === 'good' ? 'activity-icon good dispatch' : 'activity-icon assessment triage';
+
+          return `<div class="activity-item">
+            <div class="activity-icon ${cls}">${icon}</div>
+            <div class="activity-text"><b>${escapeHtml(actor)}</b> · ${escapeHtml(action)}</div>
+            <div class="activity-meta">${escapeHtml(ts)}</div>
+          </div>`;
+        }).join('');
+      } catch (e) {
+        feed.innerHTML = `<div class="empty" style="color: var(--red)">Feed error: ${e.message}</div>`;
+      }
+    }
+
+    function escapeHtml(text) {
+      if (typeof text !== 'string') return String(text || '');
+      return text.replace(/[&<>"']/g, (c) => ({'&':'&','<':'<','>':'>','"':'"',"'":'''}[c]));
+    }
+
+    async function refreshDockBoard() {
+      const grid = document.getElementById('board-grid');
+      try {
+        const resp = await fetch('/dock-board?now=12:45', { cache: 'no-store' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        if (!data.docks || data.docks.length === 0) {
+          grid.innerHTML = `<div style="grid-column: span 28; text-align: center; color: var(--muted); padding: 20px;">No dock data</div>`;
+          return;
+        }
+
+        let html = '';
+        data.docks.forEach((dock, di) => {
+          const dockClass = `dock-${di}`;
+          html += `<div class="dock-label">${escapeHtml(dock.dock)}</div>`;
+
+          // Create 28 slots
+          for (let i = 0; i < 28; i++) {
+            const slotStart = i * 30; // 30-min slots from 8:00
+            const slotEnd = slotStart + 30;
+            const hhmmStart = `${8 + Math.floor(i/2)}:${i%2===0?'0':'30'}`;
+            // Determine slot state from dock data
+            const slotState = 'free'; // default
+            const hasTooltip = false;
+
+            html += `<div class="slot ${escapeHtml(slotState)}" 
+                       title="${escapeHtml(`${dock.dock} slot ${hhmmStart}`)}"
+                       aria-label="${escapeHtml(`${dock.dock} slot ${hhmmStart}`)}">
+                      </div>`;
+          }
+        });
+
+        grid.innerHTML = html;
+      } catch (e) {
+        grid.innerHTML = `<div style="grid-column: span 28; color: var(--red); padding: 20px;">Dock board error: ${e.message}</div>`;
+      }
+    }
+
+    async function refreshAgentChannel() {
+      const transcript = document.getElementById('agent-transcript');
+      transcript.innerHTML = `<div class="empty" style="font-size: 12px;">Waiting for agent events…</div>`;
+
+      try {
+        const resp = await fetch('/agent-events?limit=20', { cache: 'no-store' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        if (!data.events || data.events.length === 0) {
+          transcript.innerHTML = `<div class="empty">No agent interactions yet. Send a driver message to begin.</div>`;
+          return;
+        }
+
+        transcript.innerHTML = data.events.slice(0, 20).map((ev, i) => {
+          const agent = ev.agent || 'unknown';
+          const role = agent.split('-')[0].toLowerCase(); // triage, dispatch, assessment
+          const badgeCls = `.badge.${role}`;
+          const icon = {triage: '◈', dispatch: '▤', assessment: '✳'}[role] || '◈';
+          const badgeColor = {triage: 'var(--lime)', dispatch: 'var(--cyan)', assessment: 'var(--violet)'}[role] || 'var(--muted)';
+
+          const decision = ev.decision || {};
+          const action = decision.action || '—';
+          const selected = decision.selected_id ? ` → ${decision.selected_id}` : '';
+          const reason = decision.reason ? ` (${decision.reason})` : '';
+
+          const shipId = ev.shipment_id ? ` · ${ev.shipment_id}` : '';
+
+          // Determine sender type
+          const senderCls = ev.sender && ev.sender.includes('DRV') ? 'who triage' : 
+                           ev.sender && ev.sender.includes('FAC') ? 'who dispatch' : 'who system';
+
+          return `<div class="agent-msg">
+            <div>
+              <div class="who ${senderCls}">${escapeHtml(ev.sender || 'system')}</div>
+              <span class="badge triage">${icon} ${role.toUpperCase()}</span>
+            </div>
+            <div class="text"><b>${escapeHtml(action)}</b>${selected}${reason}${shipId}</div>
+            <div class="detail">${ev.message_text ? escapeHtml(ev.message_text.substring(0, 80)) : ''}</div>
+          </div>`;
+        }).join('');
+
+        // Scroll to bottom
+        transcript.scrollTop = transcript.scrollHeight;
+      } catch (e) {
+        transcript.innerHTML = `<div class="empty" style="color: var(--red)">Agent channel error: ${e.message}</div>`;
+      }
+    }
+
+    function updateFlightMeter() {
+      const simPercent = (STATE.simTime / SIMULATION.totalMinutes) * 100;
+      STATE.progress.style.width = `${simPercent}%`;
+      STATE.percentage.textContent = `${Math.round(simPercent)}%`;
+
+      const remaining = SIMULATION.totalMinutes - STATE.simTime;
+      const hh = Math.floor(remaining / 60);
+      const mm = remaining % 60;
+      STATE.timeRemaining.textContent = `${hh < 10 ? '0' : ''}${hh}:${mm < 10 ? '0' : ''}${mm}`;
+
+      // Animate percentage number
+      STATE.percentage.style.transform = 'scale(1.2)';
+      setTimeout(() => { STATE.percentage.style.transform = 'scale(1)'; }, 150);
+    }
+
+    // =========================================================================
+    // EVENT HANDLERS
+    // =========================================================================
+    // Send test driver message
+    window.sendTestMessage = function() {
+      const sender = prompt('Driver ID (e.g., DRV006):', 'DRV006');
+      const text = prompt('Message:', 'Running late, will reach in 30 min');
+      const shipment = prompt('Shipment ID (e.g., SHP1006):', '');
+
+      if (!sender || !text) return;
+
+      fetch('/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ external_id: `ui-${Date.now()}`, sender, text, now: '12:45' })
+      }).then(resp => resp.json()).then(data => {
+        showToast(`Message sent: ${data.status}`);
+        refreshAll();
+      }).catch(err => {
+        showToast(`Error: ${err.message}`, true);
+      });
+    };
+
+    // Scenario selector
+    window.selectScenario = function(scenario) {
+      showScenarioInfo(scenario);
+    };
+
+    function showToast(message, isError = false) {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+        padding: 12px 20px; background: ${isError ? 'rgba(255,82,82,0.9)' : 'rgba(0,255,136,0.9)'};
+        color: #0a0a0a; border-radius: 8px; font-size: 13px; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      `;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

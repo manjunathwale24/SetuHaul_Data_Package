@@ -13,14 +13,17 @@ Usage:
 from __future__ import annotations
 
 import argparse
-from datetime import datetime, timezone
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
-from pathlib import Path
 import re
 import sqlite3
 import threading
+import time
+import uuid
+from collections import deque
+from datetime import datetime, timezone
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -31,11 +34,432 @@ from nvidia_agents import AgentRole, NVIDIAClientError, ask_agent, load_nvidia_e
 from slot_engine import HOLD_TTL_MIN, HOLDS_SCHEMA, SlotCheck, SlotEngine, hhmm, ts
 from training_agents import AGENTS as TRAINING_AGENTS, respond as training_agent_respond
 
+# Self-healing agent routes (mounted under /self-healing/*)
+from self_healing_api import SELF_HEALING_ROUTES  # noqa: E402
+
+from conversation_graph import build_message_graph
+from brief_scenarios import HANDOFF_FIELDS, revise_eta, shipment_card
+from guards import guard_answer, to_minutes
+from nvidia_agents import AgentRole, NVIDIAClientError, ask_agent, load_nvidia_env
+from slot_engine import HOLD_TTL_MIN, HOLDS_SCHEMA, SlotCheck, SlotEngine, hhmm, ts
+from training_agents import AGENTS as TRAINING_AGENTS, respond as training_agent_respond
+
+# Self-healing agent routes (mounted under /self-healing/*)
+from self_healing_api import SELF_HEALING_ROUTES  # noqa: E402
+
 
 AgentFn = Callable[[AgentRole, dict[str, Any]], dict[str, Any]]
 MAX_OPTIONS = 3
 INACTIVE_SHIPMENTS = ("COMPLETED", "CANCELLED")
 TRAINING_FACILITY_ID = "FAC-JAI-01"
+
+# ---------------------------------------------------------------------------
+# Live event bus — every agent decision, sandbox tick, and system event is
+# published here so any number of UI clients can stream it in real time via SSE.
+# ---------------------------------------------------------------------------
+class EventBus:
+    def __init__(self, capacity: int = 2000) -> None:
+        self.capacity = capacity
+        self.events: deque[dict[str, Any]] = deque(maxlen=capacity)
+        self.subscribers: list[Any] = []
+        self.lock = threading.RLock()
+
+    def publish(self, event: dict[str, Any]) -> None:
+        event["id"] = str(uuid.uuid4())
+        event["ts"] = time.time()
+        with self.lock:
+            self.events.append(event)
+            subs = list(self.subscribers)
+        for q in subs:
+            try:
+                q.append(event)
+            except Exception:
+                pass
+
+    def subscribe(self) -> Any:
+        q: deque = deque(maxlen=500)
+        with self.lock:
+            self.subscribers.append(q)
+            for e in self.events:
+                q.append(e)
+        return q
+
+    def unsubscribe(self, q: Any) -> None:
+        with self.lock:
+            if q in self.subscribers:
+                self.subscribers.remove(q)
+
+    def history(self, limit: int = 100) -> list[dict[str, Any]]:
+        with self.lock:
+            return list(self.events)[-limit:]
+
+
+EVENT_BUS = EventBus()
+
+
+def _agent_event(
+    sender: str,
+    agent: str,
+    decision: dict[str, Any],
+    source: str,
+    shipment_id: str | None = None,
+    status: str | None = None,
+    reply: str | None = None,
+    violations: list[str] | None = None,
+    message_text: str | None = None,
+    thread: str | None = None,
+    sim_time: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "type": "agent_decision",
+        "time": sim_time or hhmm(0),
+        "sender": sender,
+        "agent": agent,
+        "role": agent,
+        "source": source,
+        "decision": decision or {},
+        "violations": violations or [],
+        "shipment_id": shipment_id,
+        "status": status,
+        "reply": reply,
+        "message_text": message_text,
+        "thread": thread,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Sandbox runner — runs the live multi-agent sandbox in a background thread
+# and publishes every agent decision to the event bus so the UI shows them
+# at real-world speed.
+# ---------------------------------------------------------------------------
+class SandboxRunner:
+    def __init__(self, bus: EventBus) -> None:
+        self.bus = bus
+        self.thread: threading.Thread | None = None
+        self.stop = threading.Event()
+        self.status = "idle"  # idle | running | stopping | finished | error
+        self.summary: dict[str, Any] = {}
+        self.lock = threading.RLock()
+
+    def start(self, minutes: float = 15, seed: int = 7, start: str = "09:30") -> dict[str, Any]:
+        with self.lock:
+            if self.status == "running":
+                return {"status": "already_running"}
+            self.stop.clear()
+            self.status = "running"
+            self.summary = {}
+            self.thread = threading.Thread(
+                target=self._run, args=(minutes, seed, start), daemon=True
+            )
+            self.thread.start()
+            return {"status": "started", "minutes": minutes, "seed": seed, "start": start}
+
+    def request_stop(self) -> dict[str, Any]:
+        with self.lock:
+            if self.status != "running":
+                return {"status": self.status}
+            self.status = "stopping"
+            self.stop.set()
+            return {"status": "stopping"}
+
+    def get_status(self) -> dict[str, Any]:
+        with self.lock:
+            return {
+                "status": self.status,
+                "summary": self.summary,
+            }
+
+    def _run(self, minutes: float, seed: int, start: str) -> None:
+        try:
+            from sandbox import Sandbox  # imported lazily to avoid hard dep at import
+
+            def echo(line: str) -> None:
+                self.bus.publish({
+                    "type": "sandbox_log",
+                    "time": hhmm(int(time.time() * 0)),
+                    "sender": "SANDBOX",
+                    "agent": "system",
+                    "source": "system",
+                    "decision": {"action": "LOG", "reason": line},
+                    "message_text": line,
+                })
+
+            sb = Sandbox(
+                seed=seed,
+                start=start,
+                wall_seconds=minutes * 60,
+                pace=True,
+                echo=echo,
+            )
+
+            # wrap decide/speak so every agent call hits the bus
+            orig_decide = sb._call
+            orig_speak = sb._speak
+
+            def traced_call(role, scenario, allowed_ids, kind, expected, check):
+                started = time.monotonic()
+                try:
+                    raw = orig_decide(role, scenario, allowed_ids, kind, expected, check)
+                except Exception as exc:  # noqa: BLE001
+                    raw = None
+                # publish the raw agent decision
+                guarded = raw
+                decision_out = None
+                if raw is not None:
+                    decision_out = raw.get("decision") if isinstance(raw, dict) else raw
+                self.bus.publish({
+                    "type": "agent_decision",
+                    "time": hhmm(sb.now),
+                    "sender": scenario.get("sender", {}).get("driver_ref", "SYSTEM"),
+                    "agent": role.value,
+                    "role": role.value,
+                    "source": "agent",
+                    "decision": decision_out or {},
+                    "shipment_id": scenario.get("shipment", {}).get("id"),
+                    "status": kind,
+                    "message_text": scenario.get("message"),
+                })
+                return guarded
+
+            def traced_speak(actor, system, brief, fallback, valid):
+                text = orig_speak(actor, system, brief, fallback, valid)
+                self.bus.publish({
+                    "type": "agent_decision",
+                    "time": hhmm(sb.now),
+                    "sender": actor.upper(),
+                    "agent": "persona",
+                    "role": actor,
+                    "source": "persona",
+                    "decision": {"action": "SAY", "reason": fallback},
+                    "message_text": text,
+                })
+                return text
+
+            sb._call = traced_call
+            sb._speak = traced_speak
+
+            sb.run()
+
+            with self.lock:
+                self.status = "finished"
+                self.summary = sb.summary()
+            self.bus.publish({
+                "type": "sandbox_finished",
+                "time": hhmm(sb.now),
+                "sender": "SANDBOX",
+                "agent": "system",
+                "source": "system",
+                "decision": {"action": "FINISHED", "reason": sb.stop_reason},
+                "message_text": f"Sandbox finished: {sb.stop_reason}",
+            })
+        except SystemExit:
+            with self.lock:
+                self.status = "error"
+            self.bus.publish({
+                "type": "sandbox_error",
+                "sender": "SANDBOX",
+                "agent": "system",
+                "source": "system",
+                "decision": {"action": "ERROR", "reason": "sandbox exited"},
+            })
+        except Exception as exc:  # noqa: BLE001
+            with self.lock:
+                self.status = "error"
+            self.bus.publish({
+                "type": "sandbox_error",
+                "sender": "SANDBOX",
+                "agent": "system",
+                "source": "system",
+                "decision": {"action": "ERROR", "reason": str(exc)},
+            })
+
+
+SANDBOX_RUNNER = SandboxRunner(EVENT_BUS)
+
+
+class TimelapseRunner:
+    """Fast-forward timelapse: runs the sandbox with deterministic agents,
+    no pacing, publishing every event to the bus for live UI animation.
+    24 simulated hours compress into ~10 wall minutes."""
+
+    def __init__(self, bus: EventBus) -> None:
+        self.bus = bus
+        self.thread: threading.Thread | None = None
+        self.stop = threading.Event()
+        self.status = "idle"  # idle | running | stopping | finished | error
+        self.summary: dict[str, Any] = {}
+        self.lock = threading.RLock()
+
+    def start(self, minutes: float = 10, seed: int = 7, start: str = "06:00") -> dict[str, Any]:
+        with self.lock:
+            if self.status == "running":
+                return {"status": "already_running"}
+            self.stop.clear()
+            self.status = "running"
+            self.summary = {}
+            self.thread = threading.Thread(
+                target=self._run, args=(minutes, seed, start), daemon=True
+            )
+            self.thread.start()
+            return {"status": "started", "minutes": minutes, "seed": seed, "start": start}
+
+    def request_stop(self) -> dict[str, Any]:
+        with self.lock:
+            if self.status != "running":
+                return {"status": self.status}
+            self.status = "stopping"
+            self.stop.set()
+            return {"status": "stopping"}
+
+    def get_status(self) -> dict[str, Any]:
+        with self.lock:
+            return {"status": self.status, "summary": self.summary}
+
+    def _run(self, minutes: float, seed: int, start: str) -> None:
+        try:
+            from sandbox import Sandbox  # lazy import
+
+            def echo(line: str) -> None:
+                self.bus.publish({
+                    "type": "timelapse_log",
+                    "time": hhmm(0),
+                    "sender": "TIMELAPSE",
+                    "agent": "system",
+                    "source": "system",
+                    "decision": {"action": "LOG", "reason": line},
+                    "message_text": line,
+                })
+
+            # Run sandbox as fast as possible: no pacing, deterministic stand-ins
+            sb = Sandbox(
+                seed=seed,
+                start=start,
+                wall_seconds=minutes * 60,
+                pace=False,  # run flat out, no wall-clock throttling
+                echo=echo,
+            )
+
+            # Override decide/speak with deterministic versions (no LLM, instant)
+            from nvidia_agents import AgentRole
+            from guards import guard_answer
+
+            def fast_decide(role: AgentRole, scenario: dict[str, Any]) -> dict[str, Any]:
+                """Raw agent decision (before guarding). Called by Sandbox._call."""
+                feasi = (scenario.get("deterministic_feasibility") or {}).get("feasible_ids") or []
+                if role == AgentRole.TRIAGE:
+                    claimed = (scenario.get("extracted") or {}).get("claimed_eta")
+                    has_shipment = bool(scenario.get("shipment_id") or scenario.get("shipment", {}).get("id"))
+                    has_eta = bool(claimed)
+                    if not has_shipment:
+                        action, ask, reason = "CLARIFY", "DRIVER", "shipment not identified"
+                    elif not has_eta:
+                        action, ask, reason = "CLARIFY", "DRIVER", "ETA missing"
+                    else:
+                        action, ask, reason = "PROPOSE", "NONE", "ETA known"
+                    return {
+                        "verification": "UNVERIFIED", "action": action, "ask_whom": ask,
+                        "selected_id": None, "state_change_allowed": False,
+                        "extracted": {"report_type": "ETA_UPDATE", "shipment_id": scenario.get("shipment_id"),
+                                      "claimed_eta": claimed, "dock_code": None, "confirms_claim": None},
+                        "evidence": [f"{hhmm(sb.now)} timelapse event"],
+                        "question": None if action == "PROPOSE" else "Which shipment and ETA?",
+                        "reason": reason,
+                    }
+                if role in (AgentRole.DISPATCH, AgentRole.ASSESSMENT):
+                    if not feasi:
+                        return {
+                            "verification": "NOT_APPLICABLE", "action": "NO_FEASIBLE_OPTION",
+                            "ask_whom": "COORDINATOR", "selected_id": None,
+                            "state_change_allowed": False, "extracted": None, "evidence": [],
+                            "question": None, "reason": "no feasible slot",
+                        }
+                    return {
+                        "verification": "NOT_APPLICABLE", "action": "PROPOSE",
+                        "ask_whom": "NONE", "selected_id": feasi[0],
+                        "state_change_allowed": False,
+                        "extracted": None, "evidence": [f"feasible={feasi}", f"picked={feasi[0]}"],
+                        "question": None, "reason": f"selected {feasi[0]}",
+                    }
+                return {"verification": "NOT_APPLICABLE", "action": "NO_ACTION",
+                        "ask_whom": "NONE", "selected_id": None, "state_change_allowed": False,
+                        "extracted": None, "evidence": [], "question": None, "reason": "noop"}
+
+            def fast_speak(system: str, user: str) -> str:
+                """Deterministic persona speech - returns instant fallback text."""
+                return "timelapse message"
+
+            def traced_call(role, scenario, allowed_ids, kind, expected, check):
+                """Wrap Sandbox._call: decide deterministically, guard, publish to bus, return guarded."""
+                started = time.monotonic()
+                try:
+                    raw = fast_decide(role, scenario)
+                    error = None
+                except Exception as exc:  # noqa: BLE001
+                    raw, error = None, str(exc)
+                if raw is None:
+                    self.bus.publish({
+                        "type": "agent_decision",
+                        "time": hhmm(sb.now),
+                        "sender": scenario.get("sender", {}).get("driver_ref", "SYSTEM"),
+                        "agent": role.value,
+                        "role": role.value,
+                        "source": "deterministic",
+                        "decision": {"action": "ERROR", "reason": error or "no decision"},
+                        "shipment_id": scenario.get("shipment", {}).get("id"),
+                        "status": kind,
+                        "message_text": scenario.get("message"),
+                    })
+                    return None
+                guarded, violations = guard_answer(raw, allowed_ids, scenario)
+                self.bus.publish({
+                    "type": "agent_decision",
+                    "time": hhmm(sb.now),
+                    "sender": scenario.get("sender", {}).get("driver_ref", "SYSTEM"),
+                    "agent": role.value,
+                    "role": role.value,
+                    "source": "deterministic",
+                    "decision": guarded,
+                    "violations": violations,
+                    "shipment_id": scenario.get("shipment", {}).get("id"),
+                    "status": kind,
+                    "message_text": scenario.get("message"),
+                })
+                return guarded
+
+            sb.decide = fast_decide
+            sb.speak = fast_speak
+            sb._call = traced_call
+
+            sb.run()
+
+            with self.lock:
+                self.status = "finished"
+                self.summary = sb.summary()
+            self.bus.publish({
+                "type": "timelapse_finished",
+                "time": hhmm(sb.now),
+                "sender": "TIMELAPSE",
+                "agent": "system",
+                "source": "system",
+                "decision": {"action": "FINISHED", "reason": sb.stop_reason},
+                "message_text": f"Timelapse finished: {sb.stop_reason}",
+            })
+        except SystemExit:
+            with self.lock:
+                self.status = "error"
+        except Exception as exc:  # noqa: BLE001
+            with self.lock:
+                self.status = "error"
+            self.bus.publish({
+                "type": "timelapse_error",
+                "sender": "TIMELAPSE",
+                "agent": "system",
+                "source": "system",
+                "decision": {"action": "ERROR", "reason": str(exc)},
+            })
+
+
+TIMELAPSE_RUNNER = TimelapseRunner(EVENT_BUS)
 
 SERVICE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS service_audit_log (
@@ -140,6 +564,68 @@ def _option(i: int, c: SlotCheck, eta: int) -> dict[str, Any]:
             "start": hhmm(c.start), "unload_ends": hhmm(c.end), "minutes_after_eta": c.start - eta}
 
 
+class DeterministicAgent:
+    """Stand-in agent that mirrors what triage / dispatch / assessment decide
+    without calling the LLM. Used when no NVIDIA_API_KEY is configured so the
+    live UI always shows agent activity."""
+
+    def __call__(self, role: AgentRole, scenario: dict[str, Any]) -> dict[str, Any]:
+        feasi = (scenario.get("deterministic_feasibility") or {}).get("feasible_ids") or []
+        extracted = scenario.get("extracted") or {}
+        shipment = scenario.get("shipment") or {}
+        load = scenario.get("load") or {}
+        new_order = scenario.get("new_order") or {}
+
+        if role == AgentRole.TRIAGE:
+            claimed = extracted.get("claimed_eta")
+            has_shipment = bool(scenario.get("shipment_id") or shipment.get("id") or extracted.get("shipment_id"))
+            has_eta = bool(claimed)
+            if not has_shipment:
+                action, ask, reason = "CLARIFY", "DRIVER", "shipment not identified"
+            elif not has_eta:
+                action, ask, reason = "CLARIFY", "DRIVER", "clock-time ETA missing"
+            else:
+                action, ask, reason = "PROPOSE", "NONE", "shipment and clock-time ETA known"
+            return {
+                "verification": "UNVERIFIED", "action": action, "ask_whom": ask,
+                "selected_id": None, "state_change_allowed": False,
+                "extracted": {"report_type": "ETA_UPDATE", "shipment_id": extracted.get("shipment_id"),
+                              "claimed_eta": claimed, "dock_code": extracted.get("dock_code"),
+                              "confirms_claim": None},
+                "evidence": [f"{hhmm(scenario.get('now', 0))} driver message", str(scenario.get("message", {}).get("text", ""))[:80]],
+                "question": None if action == "PROPOSE" else "Which shipment and what time will you reach the gate?",
+                "reason": reason,
+            }
+
+        if role in (AgentRole.DISPATCH, AgentRole.ASSESSMENT):
+            if not feasi:
+                return {
+                    "verification": "NOT_APPLICABLE", "action": "NO_FEASIBLE_OPTION",
+                    "ask_whom": "COORDINATOR", "selected_id": None,
+                    "state_change_allowed": False, "extracted": None, "evidence": [],
+                    "question": None,
+                    "reason": "no feasible slot passed deterministic checks",
+                }
+            pick = feasi[0]
+            return {
+                "verification": "NOT_APPLICABLE", "action": "PROPOSE",
+                "ask_whom": "NONE", "selected_id": pick,
+                "state_change_allowed": False,
+                "extracted": {"report_type": "OTHER", "shipment_id": shipment.get("id") or new_order.get("shipment_id"),
+                              "claimed_eta": None, "dock_code": None, "confirms_claim": None},
+                "evidence": [f"feasible_ids={feasi}", f"picked={pick}"],
+                "question": None,
+                "reason": f"selected earliest feasible option {pick}",
+            }
+
+        return {
+            "verification": "NOT_APPLICABLE", "action": "NO_ACTION",
+            "ask_whom": "NONE", "selected_id": None, "state_change_allowed": False,
+            "extracted": None, "evidence": [], "question": None,
+            "reason": "unsupported role in stand-in",
+        }
+
+
 class Service:
     def __init__(self, db_path: str = ":memory:", *, agent: AgentFn | None = None):
         self.db_path = db_path
@@ -156,6 +642,7 @@ class Service:
             " AND service_etas.reported_min<=service_holds.created_min),0)"
             " WHERE eta_id IS NULL")
         self.agent = agent
+        self._det_agent = DeterministicAgent()
         self.lock = threading.RLock()
         self.message_graph = build_message_graph(
             self._process_message,
@@ -268,6 +755,21 @@ class Service:
             violations.append("driver report cannot be VERIFIED without independent confirmation")
             guarded["verification"] = "UNVERIFIED"
         return {"source": source, "answer": guarded, "violations": violations, "agent_error": error}
+
+    def _run_agent(self, role: AgentRole, scenario: dict[str, Any]) -> dict[str, Any]:
+        """Run one agent role (live LLM if configured, else deterministic stand-in).
+        Returns a guarded, structured decision with role and source."""
+        source, raw, error = "deterministic", None, None
+        if self.agent is not None:
+            try:
+                raw, source = self.agent(role, scenario), "agent"
+            except NVIDIAClientError as exc:
+                error = str(exc)
+        if raw is None:
+            raw = self._det_agent(role, scenario)
+        guarded, violations = guard_answer(raw, None, scenario)
+        return {"role": role.value, "source": source, "decision": guarded,
+                "violations": violations, "agent_error": error}
 
     # ----- messages -------------------------------------------------------
     def post_message(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
@@ -524,6 +1026,54 @@ class Service:
               actor: str, persist: bool) -> dict[str, Any]:
         checks, opts = self.options(sid, eta["planning_eta"], now, not_before=eta.get("not_before"),
                                     finish_by=eta.get("finish_by"))
+        feasible_ids = [o["slot_id"] for o in opts]
+        shp = self.engine.shipment(sid)
+
+        dispatch_scenario = {
+            "now": hhmm(now),
+            "reason": f"driver-declared ETA {hhmm(eta['planning_eta'])}",
+            "shipment": {"id": sid, "priority": shp.get("priority_code"),
+                         "required_dock_type": shp.get("required_dock_type"),
+                         "load_weight_kg": shp.get("load_weight_kg"),
+                         "temperature_control_required": bool(shp.get("temperature_control_required")),
+                         "expected_unload_min": shp.get("expected_unload_min")},
+            "slots": [{"id": o["slot_id"], "dock": o["dock"],
+                       "start": o["start"], "end": o["unload_ends"]} for o in opts],
+            "deterministic_feasibility": {
+                "feasible_ids": feasible_ids,
+                "note": "Only these dock IDs passed capacity, weight, type, refrigeration and availability checks.",
+            },
+        }
+        dispatch_decision = self._run_agent(AgentRole.DISPATCH, dispatch_scenario)
+        EVENT_BUS.publish(_agent_event(
+            sender=actor, agent="dispatch", decision=dispatch_decision["decision"],
+            source=dispatch_decision["source"], shipment_id=sid, status="DISPATCH",
+            reply=None, violations=dispatch_decision["violations"],
+            message_text=(payload.get("message") or {}).get("text"), thread=None,
+            sim_time=hhmm(now)))
+
+        assessment_scenario = {
+            "now": hhmm(now),
+            "new_order": {"shipment_id": sid, "order_reference": shp.get("order_reference"),
+                          "priority": shp.get("priority_code"), "eta": hhmm(eta["planning_eta"])},
+            "load": {"weight_kg": shp.get("load_weight_kg"),
+                     "required_dock_type": shp.get("required_dock_type"),
+                     "temperature_control_required": bool(shp.get("temperature_control_required"))},
+            "options": opts,
+            "deterministic_feasibility": {
+                "feasible_ids": feasible_ids,
+                "note": "Only these dock IDs passed capacity, weight, type, refrigeration and availability checks.",
+            },
+        }
+        assessment_decision = self._run_agent(AgentRole.ASSESSMENT, assessment_scenario)
+
+        EVENT_BUS.publish(_agent_event(
+            sender=actor, agent="assessment", decision=assessment_decision["decision"],
+            source=assessment_decision["source"], shipment_id=sid, status="ASSESSMENT",
+            reply=None, violations=assessment_decision["violations"],
+            message_text=(payload.get("message") or {}).get("text"), thread=None,
+            sim_time=hhmm(now)))
+
         if opts:
             reply = ("These are options, not bookings: " + "; ".join(
                 f"{o['option']}) {o['dock']} {o['start']} (unload done {o['unload_ends']})" for o in opts)
@@ -537,9 +1087,18 @@ class Service:
                     offered_options=json.dumps(opts))
             triage = self.triage(payload, self._answer("PROPOSE", "NONE", "UNVERIFIED", None,
                                                        "shipment and clock-time ETA known"), driver=True)
+            triage_decision = {"role": "triage", "source": triage["source"], "decision": triage["answer"],
+                               "violations": triage["violations"], "agent_error": triage["agent_error"]}
+            EVENT_BUS.publish(_agent_event(
+                sender=actor, agent="triage", decision=triage_decision["decision"],
+                source=triage_decision["source"], shipment_id=sid, status="OPTIONS",
+                reply=reply, violations=triage_decision["violations"],
+                message_text=(payload.get("message") or {}).get("text"), thread=None,
+                sim_time=hhmm(now)))
+            agent_decisions = [triage_decision, dispatch_decision, assessment_decision]
             return {"status": "OPTIONS", "shipment_id": sid, "linked_by": linked_by, "options": opts,
                     "options_checked": len(checks), "question": None, "reply": reply, "escalation": None,
-                    "triage": triage}
+                    "triage": triage, "agent_decisions": agent_decisions}
         record = self.escalation(sid, eta, checks, now,
                                  f"No feasible slot for planning ETA {hhmm(eta['planning_eta'])}")
         if persist:
@@ -555,9 +1114,18 @@ class Service:
                  f"before {record['deadline']}; please don't come to the gate before a coordinator confirms.")
         triage = self.triage(payload, self._answer("ESCALATE", "COORDINATOR", "UNVERIFIED", None,
                                                    "no feasible slot"), driver=True)
+        triage_decision = {"role": "triage", "source": triage["source"], "decision": triage["answer"],
+                           "violations": triage["violations"], "agent_error": triage["agent_error"]}
+        EVENT_BUS.publish(_agent_event(
+            sender=actor, agent="triage", decision=triage_decision["decision"],
+            source=triage_decision["source"], shipment_id=sid, status="ESCALATED",
+            reply=reply, violations=triage_decision["violations"],
+            message_text=(payload.get("message") or {}).get("text"), thread=None,
+            sim_time=hhmm(now)))
+        agent_decisions = [triage_decision, dispatch_decision, assessment_decision]
         return {"status": "ESCALATED", "shipment_id": sid, "linked_by": linked_by, "options": [],
                 "options_checked": len(checks), "question": None, "reply": reply, "escalation": record,
-                "triage": triage}
+                "triage": triage, "agent_decisions": agent_decisions}
 
     def _facility_message(self, now: int, ext: str, sender: str, thread_id: str | None, text: str,
                           contact: sqlite3.Row | None) -> dict[str, Any]:
@@ -896,6 +1464,105 @@ class Service:
                 "training_agents": TRAINING_AGENTS,
             }
 
+    def agent_events(self, query: dict[str, str]) -> tuple[int, dict[str, Any]]:
+        """Stream recent agent decisions from the live event bus.
+        Reads from EVENT_BUS (which has normal + timelapse + sandbox events)
+        so the dashboard sees real-time agent decisions even when nothing
+        is written to service_messages yet."""
+        limit = int(query.get("limit", "100"))
+        # Read from the live event bus backlog (most recent first)
+        bus_events = EVENT_BUS.history(limit * 3)  # grab extra to filter
+        events = []
+        for ev in reversed(bus_events):  # newest first
+            if ev.get("type") != "agent_decision":
+                continue
+            decision = ev.get("decision") or {}
+            events.append({
+                "time": ev.get("time", hhmm(0)),
+                "received_min": ev.get("ts", 0),
+                "sender": ev.get("sender", "SYSTEM"),
+                "thread": ev.get("thread", ""),
+                "external_id": ev.get("id", ""),
+                "status": ev.get("status", ""),
+                "shipment_id": ev.get("shipment_id"),
+                "reply": ev.get("reply"),
+                "question": decision.get("question"),
+                "options": decision.get("selected_id") and [{"slot_id": decision.get("selected_id"), "dock": decision.get("dock_code")}] or [],
+                "escalation": None,
+                "duplicate": False,
+                "agent": ev.get("agent", "triage"),
+                "source": ev.get("source", "deterministic"),
+                "decision": decision,
+                "violations": ev.get("violations", []),
+                "agent_error": ev.get("agent_error"),
+            })
+            if len(events) >= limit:
+                break
+        events.sort(key=lambda e: e.get("received_min", 0), reverse=True)
+        return 200, {"events": events}
+
+    # ----- live streaming --------------------------------------------------
+    def stream_events(self, handler: BaseHTTPRequestHandler) -> None:
+        """Server-Sent Events stream of every agent decision + sandbox tick."""
+        q = EVENT_BUS.subscribe()
+        q_lock = threading.Lock()
+        handler.send_response(200)
+        handler.send_header("Content-Type", "text/event-stream")
+        handler.send_header("Cache-Control", "no-cache, no-transform")
+        handler.send_header("Connection", "keep-alive")
+        handler.send_header("X-Accel-Buffering", "no")
+        handler.end_headers()
+
+        def write(event: dict[str, Any]) -> None:
+            data = json.dumps(event, default=str, separators=(",", ":"))
+            handler.wfile.write(f"data: {data}\n\n".encode())
+            handler.wfile.flush()
+
+        try:
+            backlog = EVENT_BUS.history(50)
+            for e in backlog:
+                write(e)
+            while True:
+                with q_lock:
+                    event = q.popleft() if q else None
+                if event is None:
+                    time.sleep(0.25)
+                    continue
+                write(event)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            EVENT_BUS.unsubscribe(q)
+
+    # ----- sandbox control -------------------------------------------------
+    def sandbox_start(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        minutes = float(body.get("minutes", 15))
+        seed = int(body.get("seed", 7))
+        start = body.get("start", "09:30")
+        return 200, SANDBOX_RUNNER.start(minutes=minutes, seed=seed, start=start)
+
+    def sandbox_stop(self, body: dict[str, Any] | None = None) -> tuple[int, dict[str, Any]]:
+        return 200, SANDBOX_RUNNER.request_stop()
+
+    def sandbox_status(self, query: dict[str, str]) -> tuple[int, dict[str, Any]]:
+        return 200, SANDBOX_RUNNER.get_status()
+
+    def sandbox_history(self, query: dict[str, str]) -> tuple[int, dict[str, Any]]:
+        limit = int(query.get("limit", "200"))
+        return 200, {"events": EVENT_BUS.history(limit)}
+
+    # ----- timelapse: 24 hours in 10 minutes ---------------------------------
+    def timelapse_start(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
+        """Start a fast-forward timelapse: 24 simulated hours in ~10 wall minutes.
+        Uses deterministic agents (no LLM) so every tick publishes instantly."""
+        minutes = float(body.get("minutes", 10))
+        seed = int(body.get("seed", 7))
+        start = body.get("start", "06:00")
+        return 200, TIMELAPSE_RUNNER.start(minutes=minutes, seed=seed, start=start)
+
+    def timelapse_status(self, query: dict[str, str]) -> tuple[int, dict[str, Any]]:
+        return 200, TIMELAPSE_RUNNER.get_status()
+
     def training_agent(self, body: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         role = body.get("role")
         agent_id = body.get("agent_id")
@@ -937,8 +1604,16 @@ ROUTES = [
     ("GET", re.compile(r"/deployment/status"), lambda s, m, b, q: s.deployment_status()),
     ("GET", re.compile(r"/integrity"), lambda s, m, b, q: s.integrity()),
     ("GET", re.compile(r"/activity"), lambda s, m, b, q: s.activity(q)),
+    ("GET", re.compile(r"/agent-events"), lambda s, m, b, q: s.agent_events(q)),
     ("GET", re.compile(r"/audit"), lambda s, m, b, q: s.audit_log(q)),
-]
+    ("GET", re.compile(r"/stream"), lambda s, m, b, q: s.stream_events(s)),
+    ("POST", re.compile(r"/sandbox/start"), lambda s, m, b, q: s.sandbox_start(b)),
+    ("POST", re.compile(r"/sandbox/stop"), lambda s, m, b, q: s.sandbox_stop(b)),
+    ("GET", re.compile(r"/sandbox/status"), lambda s, m, b, q: s.sandbox_status(q)),
+    ("GET", re.compile(r"/sandbox/history"), lambda s, m, b, q: s.sandbox_history(q)),
+    ("POST", re.compile(r"/timelapse/start"), lambda s, m, b, q: s.timelapse_start(b)),
+    ("GET", re.compile(r"/timelapse/status"), lambda s, m, b, q: s.timelapse_status(q)),
+] + SELF_HEALING_ROUTES
 
 
 def make_handler(service: Service) -> type[BaseHTTPRequestHandler]:
@@ -1012,6 +1687,12 @@ def make_handler(service: Service) -> type[BaseHTTPRequestHandler]:
                     self._serve_deployment_dashboard()
                 except OSError:
                     self.send_error(500, "deployment dashboard asset unavailable")
+                return
+            if path == "/stream":
+                try:
+                    service.stream_events(self)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
                 return
             self._dispatch("GET")
 

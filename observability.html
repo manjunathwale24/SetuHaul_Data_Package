@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f172a">
+  <title>SetuHaul · SOC Observability</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0f19;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --line: #374151;
+      --muted: #9ca3af;
+      --text: #f3f4f6;
+      --lime: #84cc16;
+      --cyan: #22d3ee;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --violet: #a855f7;
+      --blue: #3b82f6;
+      --radius: 10px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; color: var(--text); background: var(--bg); }
+    button, select, input { font: inherit; }
+    .app { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      display: flex; flex-direction: column; gap: 24px; padding: 24px 16px 18px;
+      background: #0f172a; border-right: 1px solid var(--line);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; margin-bottom: 8px; }
+    .brand-mark {
+      width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px;
+      color: #0b1120; background: var(--lime); font-size: 14px; font-weight: 900;
+    }
+    .brand-name { font-size: 15px; font-weight: 700; letter-spacing: -.2px; }
+    .brand-sub { margin-top: 2px; color: var(--muted); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; }
+    .nav-label { padding: 0 10px; color: #6b7280; font-size: 9px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; margin-top: 12px; }
+    .nav { display: grid; gap: 4px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 10px 12px; color: #cbd5e1;
+      border: 1px solid transparent; border-radius: var(--radius); font-size: 12.5px; text-decoration: none; cursor: pointer;
+    }
+    .nav-item:hover { background: var(--panel-2); border-color: var(--line); color: #fff; }
+    .nav-item.active { color: var(--lime); background: #14532d; border-color: var(--lime); }
+    .nav-icon { width: 17px; text-align: center; font-size: 15px; }
+    .sidebar-bottom { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--line); }
+    .soc-badge {
+      display: flex; align-items: center; gap: 8px; padding: 10px; background: #1c1d2e;
+      border: 1px solid var(--line); border-radius: var(--radius); font-size: 11px; color: var(--muted);
+    }
+    .soc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 10px var(--lime); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+    /* Main */
+    .main { min-width: 0; padding: 24px 28px 40px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 26px; flex-wrap: wrap; }
+    .app-switcher { display: flex; gap: 8px; flex-wrap: wrap; }
+    .nav-btn { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: #94a3b8; font-size: 11px; text-decoration: none; font-weight: 500; }
+    .nav-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .nav-btn.active { border-color: var(--lime); color: var(--lime); background: #c6f36a12; }
+    .breadcrumb { color: #94a3b8; font-size: 11px; }
+    .breadcrumb strong { color: #e5e7eb; font-weight: 600; }
+    .top-actions { display: flex; align-items: center; gap: 10px; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line);
+      border-radius: 9px; background: var(--panel); color: #cbd5e1; font-size: 11px; cursor: pointer;
+    }
+    .chip:hover { border-color: var(--cyan); color: var(--cyan); }
+    .chip.primary { background: #1e3a8a; border-color: var(--blue); color: #bfdbfe; }
+
+    /* Metric cards grid */
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 26px; }
+    .metric {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 18px; display: flex; flex-direction: column;
+    }
+    .metric .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .metric .value { font-size: 30px; font-weight: 700; letter-spacing: -1px; margin-bottom: 4px; }
+    .metric .delta { font-size: 11px; margin-top: 4px; }
+    .delta.up { color: var(--lime); }
+    .delta.down { color: var(--red); }
+    .delta.neutral { color: var(--muted); }
+
+    /* Section */
+    .section { margin-bottom: 26px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .section-title { font-size: 15px; font-weight: 600; color: #e5e7eb; display: flex; align-items: center; gap: 8px; }
+    .section-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* Tables */
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); }
+    table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    th { text-align: left; padding: 12px 14px; color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--line); background: #0f172a; }
+    td { padding: 11px 14px; border-bottom: 1px solid var(--line); color: #e5e7eb; }
+    tr:hover td { background: #141b2a; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600;
+    }
+    .badge.info { background: #1e3a8a; color: #bfdbfe; }
+    .badge.warn { background: #78350f; color: #fcd34d; }
+    .badge.error { background: #450a0a; color: #fecaca; }
+    .badge.critical { background: #7f1d1d; color: #fca5a5; }
+    .badge.ok { background: #14532d; color: #bbf7d0; }
+
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .status-ok { background: var(--lime); box-shadow: 0 0 8px var(--lime); }
+    .status-warn { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+    .status-error { background: var(--red); box-shadow: 0 0 8px var(--red); }
+    .status-critical { background: #b91c1c; box-shadow: 0 0 8px #b91c1c; }
+
+    .refresh-indicator { font-size: 11px; color: var(--muted); font-style: italic; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 40px; color: var(--muted); }
+    .empty h3 { color: #e5e7eb; margin-bottom: 8px; }
+    .empty p { font-size: 13px; line-height: 1.6; }
+
+    /* Backend data panel */
+    .backend-panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+      padding: 18px; margin-bottom: 16px;
+    }
+    .backend-row { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+    .backend-key { color: var(--muted); font-size: 12px; min-width: 140px; }
+    .backend-value { color: #e5e7eb; font-size: 12px; font-weight: 600; }
+    .backend-value.ok { color: var(--lime); }
+    .backend-value.warn { color: var(--amber); }
+    .backend-value.error { color: var(--red); }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { flex-direction: row; overflow-x: auto; padding: 12px; gap: 12px; border-right: none; border-bottom: 1px solid var(--line); }
+      .nav { display: flex; gap: 6px; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SH</div>
+        <div>
+          <div class="brand-name">SetuHaul</div>
+          <div class="brand-sub">SOC Observability</div>
+        </div>
+      </div>
+      <div class="nav-label">Dashboards</div>
+      <div class="nav">
+        <div class="nav-item" onclick="location='dashboard.html'">
+          <span class="nav-icon">📊</span> Operations Tower
+        </div>
+        <div class="nav-item" onclick="location='deployment_dashboard.html'">
+          <span class="nav-icon">🚀</span> Deployment
+        </div>
+        <div class="nav-item active" onclick="location='observability.html'">
+          <span class="nav-icon">🛡️</span> SOC Observability
+        </div>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="soc-badge">
+          <div class="soc-dot"></div>
+          <span>SOC-compliant · 24h retention · PII redacted</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="app-switcher">
+          <a href="/dashboard" class="nav-btn">◈ Operations Tower</a>
+          <a href="/deployment" class="nav-btn">▤ Deployment</a>
+          <a href="/observability" class="nav-btn active">🛡️ SOC Observability</a>
+          <a href="/simulation" class="nav-btn">▶ Simulation</a>
+          <a href="/devops-dashboard" class="nav-btn">🤖 DevOps Agent</a>
+        </div>
+      </div>
+      <div class="topbar-bottom" style="margin-top:12px; display:flex; align-items:center; justify-content:space-between; gap:16px;">
+        <div>
+          <div class="breadcrumb"><strong>SetuHaul</strong> / SOC Observability</div>
+        </div>
+        <div class="top-actions">
+          <button class="chip primary" onclick="location.reload()">Refresh All</button>
+        </div>
+      </div>
+
+      <!-- Real-time metrics -->
+      <section class="section metrics" id="metricsGrid">
+        <!-- populated by JS -->
+      </section>
+
+      <!-- Backend EKS data -->
+      <section class="section">
+        <div class="section-header">
+          <div class="section-title">🔗 EKS Backend (Live)</div>
+          <div class="refresh-indicator" id="backendStatus">Checking…</div>
+        </div>
+        <div class="backend-panel" id="backendPanel">
+          <!-- populated by JS -->
+        </div>
+      </section>
+
+      <!-- Telemetry events -->
+      <section class="section">
+        <div class="section-header">
+          <div class="section-title">📡 Telemetry Events (24h)</div>
+          <div class="refresh-indicator" id="telemetryCount">-- events</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th><th>Type</th><th>Level</th><th>Session</th><th>URL</th><th>Payload (PII redacted)</th>
+              </tr>
+            </thead>
+            <tbody id="telemetryTable">
+              <!-- populated by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="telemetryEmpty" class="empty" style="display:none;">
+          <h3>No telemetry yet</h3>
+          <p>Telemetry is captured locally in your browser as you interact with SetuHaul. Navigate to the <strong>Operations Tower</strong> or <strong>Deployment</strong> dashboards to generate page view and API call events. Events roll off after 24 hours.</p>
+        </div>
+      </section>
+
+      <!-- Error log -->
+      <section class="section">
+        <div class="section-header">
+          <div class="section-title">⚠️ Error Log</div>
+          <div class="refresh-indicator" id="errorCount">-- errors</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th><th>Level</th><th>Type</th><th>Message / Reason</th><th>Source</th>
+              </tr>
+            </thead>
+            <tbody id="errorTable">
+              <!-- populated by JS -->
+            </tbody>
+          </table>
+        </div>
+        <div id="errorEmpty" class="empty" style="display:none;">
+          <h3>No errors in 24h</h3>
+          <p>Frontend errors and unhandled promise rejections appear here automatically. PII is redacted before storage.</p>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="observability.js"></script>
+  <script>
+    (function () {
+      const EKS_BASE = ''; // relative — proxied by Vercel to EKS
+
+      // -----------------------------------------------------------
+      // Render metrics
+      // -----------------------------------------------------------
+      async function renderMetrics() {
+        const t = window.setuhaulTelemetry;
+        const events = t.get();
+        const metrics = window.setuhaulMetrics(events);
+
+        // Try to fetch backend activity for business metrics
+        let backendActivity = null;
+        try {
+          const resp = await fetch('/activity?now=' + new Date().toTimeString().slice(0,5), { cache: 'no-store' });
+          if (resp.ok) backendActivity = await resp.json();
+        } catch (e) {
+          // backend may be unreachable from browser CORS; use local only
+        }
+
+        const m = window.setuhaulMetrics(events, backendActivity);
+
+        const grid = document.getElementById('metricsGrid');
+        grid.innerHTML = `
+          <div class="metric">
+            <div class="label">Total Events (24h)</div>
+            <div class="value">${m.totalEvents}</div>
+            <div class="delta neutral">SOC-captured</div>
+          </div>
+          <div class="metric">
+            <div class="label">Page Views</div>
+            <div class="value">${m.pageViews}</div>
+            <div class="delta ${m.pageViews > 0 ? 'up' : 'neutral'}">${m.uniqueSessions} sessions</div>
+          </div>
+          <div class="metric">
+            <div class="label">API Calls</div>
+            <div class="value">${m.apiCalls}</div>
+            <div class="delta neutral">to EKS backend</div>
+          </div>
+          <div class="metric">
+            <div class="label">API Errors</div>
+            <div class="value ${m.apiErrors > 0 ? 'delta down' : ''}">${m.apiErrors}</div>
+            <div class="delta ${m.apiErrors > 0 ? 'down' : 'neutral'}">${m.apiErrors > 0 ? 'attention needed' : 'none'}</div>
+          </div>
+          <div class="metric">
+            <div class="label">Frontend Errors</div>
+            <div class="value ${m.frontendErrors > 0 ? 'delta down' : ''}">${m.frontendErrors}</div>
+            <div class="delta ${m.frontendErrors > 0 ? 'down' : 'neutral'}">${m.criticalErrors} critical</div>
+          </div>
+          <div class="metric">
+            <div class="label">Backend Alerts</div>
+            <div class="value ${m.backendAlerts > 0 ? 'delta down' : ''}">${m.backendAlerts}</div>
+            <div class="delta neutral">from EKS /activity</div>
+          </div>
+          <div class="metric">
+            <div class="label">Data Retention</div>
+            <div class="value">24h</div>
+            <div class="delta neutral">rolling window</div>
+          </div>
+          <div class="metric">
+            <div class="label">Last Updated</div>
+            <div class="value" style="font-size:16px">${new Date(m.lastUpdated).toLocaleTimeString()}</div>
+            <div class="delta neutral">localStorage</div>
+          </div>
+        `;
+      }
+
+      // -----------------------------------------------------------
+      // Render backend EKS data
+      // -----------------------------------------------------------
+      async function renderBackend() {
+        const statusEl = document.getElementById('backendStatus');
+        const panel = document.getElementById('backendPanel');
+        const endpoints = [
+          { path: '/health', label: 'Service Health' },
+          { path: '/integrity', label: 'Booking Integrity' },
+          { path: '/activity?now=10:30', label: 'Facility Activity' },
+          { path: '/self-healing/health', label: 'Self-Healing Agent' },
+          { path: '/self-healing/config/rules', label: 'Guardrail Rules' },
+        ];
+
+        let allOk = true;
+        const rows = [];
+
+        for (const ep of endpoints) {
+          const start = Date.now();
+          let status = 'UNKNOWN', detail = '', latency = '--ms', levelClass = 'status-error';
+          try {
+            const resp = await fetch(ep.path, { cache: 'no-store' });
+            latency = (Date.now() - start) + 'ms';
+            if (resp.ok) {
+              status = 'OK';
+              levelClass = 'status-ok';
+              const json = await resp.json().catch(() => ({}));
+              detail = json.status || json.health || json.ok !== undefined ? (json.ok ? 'OK' : 'ISSUES') : 'OK';
+              if (json.ok === false) { status = 'ISSUES'; allOk = false; levelClass = 'status-warn'; detail += ' (integrity conflicts)'; }
+            } else {
+              status = 'HTTP ' + resp.status;
+              detail = resp.statusText;
+              allOk = false;
+            }
+          } catch (e) {
+            status = 'UNREACHABLE';
+            detail = e.message;
+            allOk = false;
+          }
+          rows.push({ ep, status, detail, latency, levelClass });
+        }
+
+        statusEl.textContent = allOk ? 'All endpoints healthy' : 'Some issues detected';
+        statusEl.style.color = allOk ? '#84cc16' : '#f59e0b';
+
+        panel.innerHTML = rows.map(r => `
+          <div class="backend-row">
+            <span class="backend-key">${r.ep.label}</span>
+            <span class="status-dot ${r.levelClass}"></span>
+            <span class="backend-value ${r.status === 'OK' ? 'ok' : 'error'}">${r.status}</span>
+            <span class="backend-key" style="color:#6b7280">${r.latency}</span>
+            <span class="mono" style="font-size:11px;color:#9ca3af">${r.detail}</span>
+          </div>
+        `).join('');
+      }
+
+      // -----------------------------------------------------------
+      // Render telemetry table
+      // -----------------------------------------------------------
+      function renderTelemetry() {
+        const t = window.setuhaulTelemetry;
+        const events = t.get().slice(0, 100);
+        const countEl = document.getElementById('telemetryCount');
+        const emptyEl = document.getElementById('telemetryEmpty');
+        const tbody = document.getElementById('telemetryTable');
+
+        countEl.textContent = events.length + ' events';
+
+        if (!events.length) {
+          emptyEl.style.display = 'block';
+          tbody.innerHTML = '';
+          return;
+        }
+        emptyEl.style.display = 'none';
+
+        tbody.innerHTML = events.map(e => {
+          const time = new Date(e.ts).toLocaleTimeString();
+          const levelClass = e.level === 'error' || e.level === 'critical' ? 'status-error' : e.level === 'warn' ? 'status-warn' : 'status-ok';
+          const payloadStr = typeof e.payload === 'object' ? JSON.stringify(e.payload).slice(0, 120) : String(e.payload).slice(0, 120);
+          return `
+            <tr>
+              <td><span class="mono">${time}</span></td>
+              <td><span class="badge info">${e.type}</span></td>
+              <td><span class="${levelClass}">${e.level}</span></td>
+              <td><span class="mono" style="font-size:10px">${e.sessionId.slice(-8)}</span></td>
+              <td><span class="mono" style="font-size:11px">${e.url}</span></td>
+              <td><span class="mono" style="font-size:11px;color:#9ca3af">${payloadStr}</span></td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // -----------------------------------------------------------
+      // Render error log
+      // -----------------------------------------------------------
+      function renderErrors() {
+        const t = window.setuhaulTelemetry;
+        const errors = t.get().filter(e => e.level === 'error' || e.level === 'critical');
+        const countEl = document.getElementById('errorCount');
+        const emptyEl = document.getElementById('errorEmpty');
+        const tbody = document.getElementById('errorTable');
+
+        countEl.textContent = errors.length + ' errors';
+
+        if (!errors.length) {
+          emptyEl.style.display = 'block';
+          tbody.innerHTML = '';
+          return;
+        }
+        emptyEl.style.display = 'none';
+
+        tbody.innerHTML = errors.slice(0, 100).map(e => {
+          const time = new Date(e.ts).toLocaleTimeString();
+          const levelClass = e.level === 'critical' ? 'status-critical' : 'status-error';
+          const msg = typeof e.payload === 'object' ? (e.payload.message || e.payload.reason || JSON.stringify(e.payload).slice(0, 150)) : String(e.payload).slice(0, 150);
+          return `
+            <tr>
+              <td><span class="mono">${time}</span></td>
+              <td><span class="${levelClass}">${e.level}</span></td>
+              <td><span class="badge ${e.type === 'unhandledrejection' ? 'error' : 'info'}">${e.type}</span></td>
+              <td><span class="mono" style="font-size:11px">${msg}</span></td>
+              <td><span class="mono" style="font-size:10px">${e.url}</span></td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // -----------------------------------------------------------
+      // Init
+      // -----------------------------------------------------------
+      renderMetrics();
+      renderBackend();
+      renderTelemetry();
+      renderErrors();
+
+      // Auto-refresh every 30 seconds
+      setInterval(() => {
+        renderMetrics();
+        renderBackend();
+        renderTelemetry();
+        renderErrors();
+      }, 30000);
+
+    })();
+  </script>
+</body>
+</html>

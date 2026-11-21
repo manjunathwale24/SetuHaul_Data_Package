@@ -24,7 +24,7 @@
     }
     * { box-sizing: border-box; }
     body { margin: 0; min-height: 100vh; color: var(--text); background: var(--bg); }
-    button, select, input { font: inherit; }
+    button, select, input, textarea { font: inherit; }
     button { color: inherit; }
     .app { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
     .sidebar {
@@ -34,7 +34,7 @@
     .brand { display: flex; align-items: center; gap: 11px; padding: 0 9px; }
     .brand-mark {
       width: 35px; height: 35px; display: grid; place-items: center; border-radius: 11px;
-      color: #141a12; background: var(--lime); font-size: 15px; font-weight: 900; letter-spacing: -2px;
+      color: #141a12; background: var(--lime); font-size: 15px; font-weight: 900;
     }
     .brand-name { font-size: 14px; font-weight: 750; letter-spacing: -.3px; }
     .brand-sub { margin-top: 3px; color: var(--muted); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
@@ -68,6 +68,10 @@
       border-radius: 9px; background: var(--panel); color: #b7c1d0; font-size: 10px;
     }
     .deployment-link { padding: 8px 10px; color: var(--cyan); border: 1px solid #64d9e733; border-radius: 9px; background: #64d9e70b; font-size: 9px; text-decoration: none; white-space: nowrap; }
+    .app-switcher { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+    .nav-btn { display: inline-flex; align-items: center; gap: 7px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: #94a3b8; font-size: 11px; text-decoration: none; font-weight: 500; }
+    .nav-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+    .nav-btn.active { border-color: var(--lime); color: var(--lime); background: #c6f36a12; }
     .sim-chip { color: var(--amber); background: #ffbf6910; border-color: #ffbf6930; letter-spacing: .08em; font-weight: 750; }
     .clock-chip { color: #dce5ef; font-variant-numeric: tabular-nums; }
     .icon-button { cursor: pointer; font-size: 13px; }
@@ -130,7 +134,8 @@
 
     .feed-panel { display: flex; flex-direction: column; }
     .feed-list { display: grid; gap: 0; padding: 4px 15px 12px; }
-    .feed-item { display: grid; grid-template-columns: 20px 1fr; gap: 9px; padding: 11px 0; border-bottom: 1px solid #252e3a; }
+    .feed-item { display: grid; grid-template-columns: 20px 1fr; gap: 9px; padding: 11px 0; border-bottom: 1px solid #252e3a;
+    }
     .feed-item:last-child { border-bottom: 0; }
     .feed-icon { width: 19px; height: 19px; display: grid; place-items: center; border-radius: 7px; background: #253044; color: var(--cyan); font-size: 9px; }
     .feed-icon.alert { color: var(--amber); background: #382e26; }
@@ -164,7 +169,7 @@
     .training { margin-top: 15px; }
     .training-head-copy { color: #8190a4; font-size: 9px; }
     .training-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 13px; }
-    .agent-card { min-width: 0; overflow: hidden; background: #111823; border: 1px solid #293445; border-radius: 12px; }
+    .agent-card { min-width: 0; overflow: hidden; background: #111823; border: 1px solid var(--line); border-radius: 12px; }
     .agent-head { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid #252e3a; }
     .agent-avatar { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; color: var(--cyan); background: #1d3440; font-size: 12px; }
     .agent-card.facility .agent-avatar { color: var(--violet); background: #302847; }
@@ -177,49 +182,66 @@
     .bubble.lesson { color: #ffe0aa; background: #362d24; border: 1px solid #59462e; }
     .agent-input-row { display: flex; gap: 7px; padding: 0 10px 10px; }
     .agent-input { flex: 1; min-width: 0; padding: 8px 9px; color: var(--text); background: #0d131b; border: 1px solid #2d394a; border-radius: 7px; font-size: 9px; outline: none; }
-    .agent-send { padding: 0 10px; color: #1b2412; background: var(--lime); border: 0; border-radius: 7px; cursor: pointer; font-size: 9px; font-weight: 800; }
-    .training-foot { padding: 0 14px 12px; color: #748196; font-size: 8px; }
-    .training-foot strong { color: var(--amber); font-weight: 600; }
-    .toast { position: fixed; right: 20px; bottom: 20px; padding: 10px 14px; border: 1px solid #3c4a60; border-radius: 9px; background: #1b2533; color: var(--text); box-shadow: 0 8px 35px #0008; font-size: 10px; opacity: 0; transform: translateY(8px); transition: .2s; pointer-events: none; }
-    .toast.show { opacity: 1; transform: translateY(0); }
-    .error-banner { display: none; margin: 0 0 12px; padding: 9px 12px; color: #ffbdc3; background: #3b2027; border: 1px solid #683541; border-radius: 9px; font-size: 10px; }
-    .error-banner.show { display: block; }
-    @media (max-width: 1120px) {
-      .app { grid-template-columns: 68px minmax(0,1fr); }
-      .sidebar { align-items: center; padding-inline: 8px; }
-      .brand { padding: 0; }
-      .brand-copy, .nav-label, .nav-item span:not(.nav-icon), .facility-mini, .user-copy { display: none; }
-      .nav { width: 100%; margin-top: -20px; }
-      .nav-item { justify-content: center; padding-inline: 8px; }
-      .nav-count { display: none; }
-      .user-chip { justify-content: center; }
+    .agent-send { padding: 0 10px; color: #1b2412; background: var(--lime); border: 0; border-radius: 7px; cursor: pointer; font-size: 9px; font-weight: 800; white-space: nowrap; }
+    .agent-send:disabled { opacity: .5; cursor: not-allowed; }
+    .agent-status { font-size: 8px; color: var(--lime); margin-left: 8px; min-width: 140px; }
+    .agent-time { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #252e3a; font-size: 9px; color: #8490a3; }
+    .agent-time select { padding: 5px 8px; font-size: 9px; color: #d6deea; background: #0d131b; border: 1px solid #2d394a; border-radius: 6px; outline: none; }
+
+    /* ---- Live agent channel ---- */
+    .agent-channel { margin-top: 14px; }
+    .agent-transcript {
+      display: flex; flex-direction: column; gap: 8px; height: 250px; overflow-y: auto;
+      padding: 11px 14px 4px; background: #0f151f; border: 1px solid var(--line);
+      border-radius: 0 0 var(--radius) var(--radius);
     }
-    @media (max-width: 900px) {
-      .main { padding: 20px 16px 30px; }
-      .tower-grid { grid-template-columns: 1fr; }
-      .feed-panel { min-height: 190px; }
-      .feed-list { grid-template-columns: repeat(2, minmax(0,1fr)); column-gap: 16px; }
-      .stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
-      .training-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+    .agent-transcript .empty-feed { padding: 6px 4px; color: var(--muted); font-size: 10px; }
+    .agent-msg {
+      display: grid; grid-template-columns: 64px 1fr; gap 9px; padding: 8px 0; margin: 4px 0;
+      animation: fadeIn .25s ease; font-size: 10px;
     }
-    @media (max-width: 620px) {
-      .app { grid-template-columns: 1fr; }
-      .sidebar { display: none; }
-      .main { padding: 16px 12px 25px; }
-      .topbar { align-items: flex-start; }
-      .sim-chip { font-size: 8px; }
-      .clock-chip { display: none; }
-      .title-row { align-items: flex-start; flex-direction: column; margin-top: 23px; }
-      .date-control { width: 100%; display: flex; justify-content: space-between; align-items: center; }
-      .date-control select { margin-left: 0; }
-      .stats { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
-      .stat { min-height: 78px; padding: 11px; }
-      .stat-value { font-size: 21px; }
-      .feed-list { grid-template-columns: 1fr; }
-      .training-grid { grid-template-columns: 1fr; }
-      .manifest-controls { flex: 1; }
-      .search { width: 116px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .agent-who { font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+    .agent-who.driver { color: var(--cyan); }
+    .agent-who.facility { color: var(--violet); }
+    .agent-who.system { color: var(--muted); }
+    .agent-badge {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 8px; font-weight: 800;
+      padding: 3px 7px; border-radius: 6px; letter-spacing: .05em; text-transform: uppercase;
     }
+    .badge-triage { background: #c6f36a12; color: var(--lime); border: 1px solid #c6f36a33; }
+    .badge-dispatch { background: #64d9e712; color: var(--cyan); border: 1px solid rgba(0,212,255,0.3); }
+    .badge-escalate { background: #ff758312; color: var(--red); border: 1px solid rgba(255,117,131,0.3); }
+    .badge-clarify { background: #ffbf6912; color: var(--amber); border: 1px solid #ffbf6933; }
+    .agent-text { color: #d4dce7; font-size: 9px; line-height: 1.5; grid-column: 2; margin-top: 1px; }
+    .agent-text b { color: #e9edf4; }
+    .agent-detail { grid-column: 2; font-size: 8px; color: var(--muted); margin-top: 5px; border-top: 1px solid #252e3a; padding-top: 5px; }
+    .agent-detail b { color: #adb5bd; }
+    .agent-detail pre { margin: 4px 0 0; white-space: pre-wrap; font: inherit; font-size: 8px; color: #d4dce7; background: #0c1017; padding: 5px 7px; border-radius: 6px; border: 1px solid #252e3a; overflow-x: auto; }
+    .agent-input-row { display: flex; gap: 7px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+    .agent-input { flex: 1; min-width: 110px; padding: 7px 9px; color: var(--text); background: #0d131b; border: 1px solid #2d394a; border-radius: 7px; font-size: 9px; outline: none; }
+    .agent-send { padding: 0 12px; color: #1b2412; background: var(--lime); border: 0; border-radius: 7px; cursor: pointer; font-size: 9px; font-weight: 800; white-space: nowrap; }
+    .agent-send:disabled { opacity: .5; cursor: not-allowed; }
+    .agent-status { font-size: 8px; color: var(--lime); margin-left: 8px; min-width: 140px; }
+    .agent-time { display: flex; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid #252e3a; font-size: 9px; color: #8490a3; }
+    .agent-time select { padding: 5px 8px; font-size: 9px; color: #d6deea; background: #0d131b; border: 1px solid #2d394a; border-radius: 6px; outline: none; }
+
+    /* ---- SSE live connection ---- */
+    .sse-status {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 9px; padding: 4px 9px;
+      border-radius: 6px; border: 1px solid var(--line); background: #151b26; color: var(--muted);
+    }
+    .sse-status.connected { color: var(--lime); border-color: #c6f36a33; background: #c6f36a0b; }
+    .sse-status.disconnected { color: var(--red); border-color: #ff758333; background: #ff75830b; }
+    .sse-dot { width: 6px; height: 6px; border-radius: 50%; background: #667286; }
+    .sse-dot.live { background: var(--lime); box-shadow: 0 0 8px #c6f37988; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }
+    .marathon-banner {
+      display: inline-flex; align-items: center; gap: 8px; padding: 5px 10px;
+      border-radius: 6px; background: #64d9e70b; border: 1px solid #64d9e733;
+      color: var(--cyan); font-size: 9px; font-weight: 700; margin-left: 8px;
+    }
+    .marathon-banner.active { background: var(--lime)10; border-color: var(--lime)33; color: var(--lime); }
   </style>
 </head>
 <body>
@@ -227,7 +249,10 @@
     <aside class="sidebar">
       <div class="brand">
         <div class="brand-mark">SH</div>
-        <div class="brand-copy"><div class="brand-name">setuhaul</div><div class="brand-sub">control tower</div></div>
+        <div>
+          <div class="brand-name">setuhaul</div>
+          <div class="brand-sub">control tower</div>
+        </div>
       </div>
       <div class="nav-label">Operations</div>
       <nav class="nav" aria-label="Main navigation">
@@ -235,6 +260,7 @@
         <a class="nav-item" href="#manifest"><span class="nav-icon">▤</span><span>Shipments</span><span class="nav-count" id="nav-shipments">—</span></a>
         <a class="nav-item" href="#dock-board"><span class="nav-icon">▦</span><span>Dock board</span></a>
         <a class="nav-item" href="#activity"><span class="nav-icon">⌁</span><span>Exceptions</span><span class="nav-count" id="nav-alerts">—</span></a>
+        <a class="nav-item" href="/observability"><span class="nav-icon">🛡️</span><span>SOC Observability</span></a>
       </nav>
       <div class="nav-label">Academy</div>
       <nav class="nav">
@@ -255,6 +281,15 @@
 
     <main class="main" id="tower">
       <header class="topbar">
+        <div class="app-switcher">
+          <a href="/dashboard" class="nav-btn">◈ Operations Tower</a>
+          <a href="/deployment" class="nav-btn">▤ Deployment</a>
+          <a href="/observability" class="nav-btn">🛡️ SOC Observability</a>
+          <a href="/simulation" class="nav-btn active">▶ Simulation</a>
+          <a href="/devops-dashboard" class="nav-btn">🤖 DevOps Agent</a>
+        </div>
+      </header>
+      <header class="topbar" style="margin-top:-8px;">
         <div class="breadcrumb">Network <span aria-hidden="true">/</span> India <span aria-hidden="true">/</span> <strong>Jaipur tower</strong></div>
         <div class="top-actions">
           <span class="sim-chip"><i class="pulse-dot"></i> TRAINING SIMULATION</span>
@@ -310,6 +345,32 @@
         </article>
       </section>
 
+      <section class="panel agent-channel" id="live-agent">
+        <div class="panel-head">
+          <div><div class="panel-title">Live agent channel</div><div class="panel-kicker">Triage → Dispatch → Assessment · marathon stream · real-time agent decisions</div></div>
+          <span class="live-badge"><i class="pulse-dot"></i> LIVE</span>
+          <div class="sse-status" id="sse-status"><span class="sse-dot"></span>SSE connecting…</div>
+          <span class="marathon-banner active" id="marathon-badge">MARATHON ACTIVE</span>
+        </div>
+        <div class="agent-transcript" id="agent-transcript">
+          <div class="empty-feed">No agent interactions yet. Send a driver message below to see the triage agent decide.</div>
+        </div>
+        <div class="agent-input-row">
+          <input class="agent-input" id="test-sender" placeholder="Driver (DRV006…)" aria-label="Driver ID" maxlength="10">
+          <input class="agent-input" id="test-shipment" placeholder="Shipment (SHP1006…)" aria-label="Shipment ID" maxlength="10">
+          <input class="agent-input" id="test-text" placeholder="Say: I am running late, will reach 13:30" aria-label="Message">
+          <button class="agent-send" id="test-send" type="button">Send to agents</button>
+          <span id="test-status" class="agent-status">idle</span>
+        </div>
+        <div class="agent-time">
+          Simulation time <span id="agent-clock">10:30</span>
+          <select id="agent-time-select">
+            <option>09:30</option><option>10:30</option><option selected>12:45</option><option>14:00</option>
+            <option>16:30</option><option>18:30</option><option>20:00</option>
+          </select>
+        </div>
+      </section>
+
       <section class="panel manifest" id="manifest">
         <div class="panel-head">
           <div><div class="panel-title">Inbound manifest</div><div class="panel-kicker">Priority-sorted arrivals · synthetic training data</div></div>
@@ -338,14 +399,14 @@
   <script>
     const $ = (selector) => document.querySelector(selector);
     const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      "&": "&", "<": "<", ">": ">", '"': "", "'": "'"
     })[char]);
     const toTime = (minutes) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
     const stateLabel = (state) => ({
       IN_TRANSIT: "On road", AT_GATE: "At gate", WAITING: "Waiting", IN_DOCK: "In dock",
       ASSIGNED: "Assigned", PLANNED: "Planned", CONFIRMED: "Confirmed",
       PENDING_CONFIRMATION: "Pending", IN_PROGRESS: "In progress"
-    }[state] || String(state || "—").replaceAll("_", " ").toLowerCase());
+    }[state] || String(state || "—").replaceAll("_", " ").toLowerCase();
     const showToast = (message) => {
       const toast = $("#toast"); toast.textContent = message; toast.classList.add("show");
       window.setTimeout(() => toast.classList.remove("show"), 2300);
@@ -357,6 +418,7 @@
       const header = `<div class="time-ruler"><span></span>${hourLabels}</div>`;
       const rows = docks.map((dock) => {
         let cursor = 480;
+        const slotState = 'free'; // default
         const cells = dock.slots.sort((a, b) => a.start - b.start).map((slot) => {
           const gap = Math.max(0, Math.round((slot.start - cursor) / 30));
           const kind = slot.state.toLowerCase();
@@ -368,7 +430,7 @@
         const endGap = Math.max(0, Math.round((1320 - cursor) / 30));
         return `<div class="dock-row"><div class="dock-label">${escapeHtml(dock.dock)}<small>${escapeHtml(dock.type)}</small></div>${cells}${endGap ? `<span class="slot-gap" style="grid-column:span ${endGap}"></span>` : ""}</div>`;
       }).join("");
-      $("#dock-timeline").innerHTML = header + rows;
+      grid.innerHTML = header + rows;
     }
 
     function renderFeed(events) {
@@ -377,112 +439,179 @@
         return;
       }
       $("#activity-feed").innerHTML = events.slice(0, 10).map((event) => {
-        const payload = event.payload || {}, shipment = payload.shipment_id ? ` · ${payload.shipment_id}` : "";
-        const action = String(event.action || "").replaceAll("_", " ").toLowerCase();
-        const category = /ESCALAT|REJECT|SAFETY/.test(event.action) ? "alert" : /CONFIRMED|CREATED/.test(event.action) ? "good" : "";
-        const symbol = category === "alert" ? "!" : category === "good" ? "✓" : "↗";
-        const summary = payload.summary ? `<div class="feed-meta">${escapeHtml(payload.summary)}</div>` : "";
-        const source = event.source ? ` · ${escapeHtml(event.source)}` : "";
-        return `<div class="feed-item"><span class="feed-icon ${category}">${symbol}</span><div><div class="feed-text"><strong>${escapeHtml(event.actor)}</strong> · ${escapeHtml(action)}${escapeHtml(shipment)}</div><div class="feed-meta"><span>${escapeHtml(event.time)}</span><span>${escapeHtml(event.action)}${source}</span></div>${summary}</div></div>`;
-      }).join("");
+        const payload = event.payload || {}, shipment = payload.shipment_id ? ` · ${escapeHtml(event.shipment_id)}` : "";
+        const action = String(event.action || "").replaceAll('_', ' ').toLowerCase();
+        const actor = event.actor || 'system';
+        const category = /ESCALAT|REJECT|SAFETY/.test(event.action) ? 'alert' : /CONFIRMED|CREATED/.test(event.action) ? 'good' : '';
+        const icon = category === 'alert' ? '!' : category === 'good' ? '✓' : '↗';
+        const cls = category === 'alert' ? 'activity-icon alert triage' :
+                     category === 'good' ? 'activity-icon good dispatch' : 'activity-icon assessment triage';
+
+          return `<div class="feed-item"><span class="feed-icon ${cls}">${icon}</span><div><div class="feed-text"><strong>${escapeHtml(actor)}</strong> · ${escapeHtml(action)}</div><div class="activity-meta">${escapeHtml(event.time)}</div></div>`;
+      }).join('');
     }
 
-    function renderManifest(shipments) {
-      const filter = $("#shipment-search").value.trim().toLowerCase();
-      const rows = shipments.filter((item) =>
-        [item.shipment_id, item.driver_id, item.current_status, item.dock_code].join(" ").toLowerCase().includes(filter));
-      $("#manifest-body").innerHTML = rows.length ? rows.map((item) => {
-        const appointment = item.appointment_status
-          ? `<span class="status-tag ${escapeHtml(item.appointment_status)}">${escapeHtml(stateLabel(item.appointment_status))}</span>`
-          : `<span class="status-tag">No slot</span>`;
-        return `<tr>
-          <td class="shipment-id">${escapeHtml(item.shipment_id)}</td>
-          <td>${escapeHtml(item.driver_id)}</td>
-          <td>${escapeHtml(item.eta)} <span class="stat-note">${escapeHtml(item.eta_confidence)}</span></td>
-          <td>${escapeHtml(item.dock_code || "—")} ${item.slot_start ? `· ${escapeHtml(item.slot_start)}` : ""}</td>
-          <td><span class="priority ${escapeHtml(item.priority_code)}"><i></i>${escapeHtml(item.priority_code)}</span></td>
-          <td><span class="status-tag ${escapeHtml(item.current_status)}">${escapeHtml(stateLabel(item.current_status))}</span></td>
-          <td>${appointment}</td>
-        </tr>`;
-      }).join("") : `<tr><td class="empty-row" colspan="7">No matching inbound shipments.</td></tr>`;
+    function escapeHtml(text) {
+      if (typeof text !== 'string') return String(text || '');
+      return text.replace(/[&<>"']/g, (c) => ({'&':'&','<':'<','>':'>','"':'"',"'":'''}[c]));
     }
 
-    async function refreshDashboard() {
-      const time = $("#time-select").value;
-      $("#clock").textContent = `${time} IST`;
+    function connectSSE() {
+      if (sseSource) { sseSource.close(); sseSource = null; }
+      sseStatus.textContent = "SSE connecting…";
+      sseStatus.className = "sse-status disconnected";
+      sseDot.className = "sse-dot";
+
+      const es = new EventSource("/stream");
+      sseSource = es;
+
+      es.onopen = () => {
+        sseStatus.textContent = "SSE live · marathon streaming";
+        sseStatus.className = "sse-status connected";
+        sseDot.className = "sse-dot live";
+        showToast("SSE live stream connected — marathon active");
+      };
+
+      es.onmessage = (event) => {
+        try {
+          const ev = JSON.parse(event.data);
+          if (ev.type === "agent_decision") {
+            appendAgentEventToTranscript(ev);
+          } else if (ev.type === "sandbox_log") {
+            showToast("Sandbox: " + ev.message_text);
+          } else if (ev.type === "sandbox_finished") {
+            showToast("Marathon finished: " + ev.decision.reason);
+          } else if (ev.type === "sandbox_error") {
+            showToast("Sandbox error: " + ev.decision.reason);
+          }
+        } catch (e) {
+          showToast("SSE message parsing error: " + e.message);
+        }
+      };
+
+      es.onerror = () => {
+        sseStatus.textContent = "SSE disconnected ⚠️";
+        sseStatus.className = "sse-status disconnected";
+        sseDot.className = "sse-dot";
+        es.close();
+        sseSource = null;
+        // retry after 3 seconds
+        setTimeout(connectSSE, 3000);
+      };
+    }
+
+    connectSSE();
+
+    // ==================== ANIMATED TIMELAPSE ====================
+    // 24 hours in ~10 minutes — whole board alive, counters ticking, docks moving
+    let tlState = {
+      running: false,
+      speed: 1,           // 1 = real-time, higher = faster
+      simTime: null,      // current simulated minutes
+      wallStart: null,    // wall clock when timelapse started
+      animFrame: null,
+      lastTick: 0,
+    };
+
+    const TL_SECONDS_PER_SIM_MIN = 0.4; // 1 sim minute per 0.4 wall seconds = 2.5x speed
+    const SIM_START_MIN = 360;   // 06:00
+    const SIM_END_MIN = 1260;    // 21:00
+    const TOTAL_SIM_MIN = SIM_END_MIN - SIM_START_MIN; // 900 minutes (15 hours)
+    const TOTAL_WALL_SECONDS = TOTAL_SIM_MIN * TL_SECONDS_PER_SIM_MIN; // ~360s = 6 min
+
+    function formatSimTime(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return `${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`;
+    }
+
+    function startTimelapse() {
+      if (tlState.running) return;
+      tlState.running = true;
+      tlState.wallStart = performance.now();
+      tlState.simTime = SIM_START_MIN;
+      tlState.lastTick = tlState.wallStart;
+      $("#sse-status").textContent = "TIMELAPSE · 24h in 10 min";
+      $("#sse-status").className = "sse-status connected";
+      $("#sse-dot").className = "sse-dot live";
+      $("#marathon-badge").textContent = "TIMELAPSE ACTIVE";
+      $("#marathon-badge").className = "marathon-banner active";
+      showToast("Timelapse started — 24 hours in ~10 minutes");
+      requestAnimationFrame(tlTick);
+    }
+
+    function stopTimelapse() {
+      tlState.running = false;
+      if (tlState.animFrame) cancelAnimationFrame(tlState.animFrame);
+      tlState.animFrame = null;
+      $("#sse-status").textContent = "SSE live · marathon streaming";
+      $("#marathon-badge").textContent = "MARATHON ACTIVE";
+      showToast("Timelapse stopped");
+    }
+
+    function tlTick(now) {
+      if (!tlState.running) return;
+
+      const elapsedWall = (now - tlState.wallStart) / 1000; // seconds
+      const simMinutesPassed = elapsedWall / TL_SECONDS_PER_SIM_MIN;
+      tlState.simTime = SIM_START_MIN + simMinutesPassed;
+
+      if (tlState.simTime >= SIM_END_MIN) {
+        tlState.simTime = SIM_END_MIN;
+        stopTimelapse();
+        showToast("Timelapse complete — 24 hours simulated");
+        // refresh once at end
+        refreshDashboard();
+        return;
+      }
+
+      // Emit a board refresh on every sim minute boundary
+      const simMinute = Math.floor(tlState.simTime);
+      if (simMinute > tlState.lastTick) {
+        tlState.lastTick = simMinute;
+        const hhmm = formatSimTime(tlState.simTime);
+        $("#clock").textContent = hhmm + " IST";
+        $("#agent-clock").textContent = hhmm;
+        $("#time-select").value = hhmm;
+
+        // Fetch board at this sim time (refreshes docks, stats, manifest)
+        fetchBoardAtTime(hhmm).then(() => {
+          // after board update, tick agent decisions from SSE backlog
+        });
+      }
+
+      tlState.animFrame = requestAnimationFrame(tlTick);
+    }
+
+    async function fetchBoardAtTime(hhmm) {
       try {
-        const response = await fetch(`/activity?now=${encodeURIComponent(time)}`, {cache: "no-store"});
-        if (!response.ok) throw new Error(`Activity API returned ${response.status}`);
-        const data = await response.json();
-        $("#error-banner").classList.remove("show");
-        $("#stat-inbound").textContent = data.counts.inbound;
-        $("#stat-road").textContent = data.counts.in_transit;
-        $("#stat-gate").textContent = data.counts.at_gate;
-        $("#stat-booked").textContent = data.counts.booked;
-        $("#stat-alerts").textContent = data.counts.alerts + data.counts.pending;
-        $("#nav-shipments").textContent = data.counts.inbound;
-        $("#nav-alerts").textContent = data.counts.alerts + data.counts.pending;
-        renderDocks(data.docks);
-        renderFeed(data.activity);
-        renderManifest(data.shipments);
-        if (!window.trainingInitialized) initializeTraining(data.training_agents);
-      } catch (error) {
-        $("#error-banner").textContent = `Dashboard disconnected: ${error.message}. Start the SetuHaul service to view activity.`;
-        $("#error-banner").classList.add("show");
+        const [actResp, evResp] = await Promise.all([
+          fetch(`/activity?now=${encodeURIComponent(hhmm)}`, {cache: "no-store"}),
+          fetch(`/agent-events?limit=20&since=0`, {cache: "no-store"}),
+        ]);
+        if (actResp.ok) {
+          const data = await actResp.json();
+          $("#error-banner").classList.remove("show");
+          $("#stat-inbound").textContent = data.counts.inbound;
+          $("#stat-road").textContent = data.counts.in_transit;
+          $("#stat-gate").textContent = data.counts.at_gate;
+          $("#stat-booked").textContent = data.counts.booked;
+          $("#stat-alerts").textContent = data.counts.alerts + data.counts.pending;
+          $("#nav-shipments").textContent = data.counts.inbound;
+          $("#nav-alerts").textContent = data.counts.alerts + data.counts.pending;
+          renderDocks(data.docks);
+          renderFeed(data.activity);
+          renderManifest(data.shipments);
+        }
+        if (evResp.ok) {
+          const edata = await evResp.json();
+          renderAgentChannel(edata.events || []);
+        }
+      } catch (e) {
+        // timelapse fetch errors are non-fatal
       }
     }
 
-    function appendBubble(agentId, text, kind = "") {
-      const log = document.getElementById(`chat-${agentId}`), bubble = document.createElement("div");
-      bubble.className = `bubble ${kind}`.trim(); bubble.textContent = text; log.appendChild(bubble);
-      log.scrollTop = log.scrollHeight;
-    }
+    // Timelapse controls in the topbar
 
-    function initializeTraining(agents) {
-      $("#training-grid").innerHTML = Object.entries(agents).map(([agentId, agent]) => {
-        const role = escapeHtml(agent.role), id = escapeHtml(agentId);
-        const roleLabel = role === "facility" ? "FACILITY" : `DRIVER ${escapeHtml(agentId.slice(-2))}`;
-        const avatar = role === "facility" ? "⌂" : "↗";
-        const placeholder = role === "facility" ? "Ask the facility desk…" : "Ask the driver…";
-        return `<article class="agent-card ${role}" data-agent-id="${id}">
-          <div class="agent-head"><div class="agent-avatar">${avatar}</div><div><div class="agent-name">${escapeHtml(agent.name)}</div><div class="agent-scenario">${escapeHtml(agent.scenario)}</div></div><span class="role-tag">${roleLabel}</span></div>
-          <div class="chat-log" id="chat-${id}" aria-live="polite"></div>
-          <form class="agent-input-row" data-role="${role}" data-agent-id="${id}"><input class="agent-input" name="message" autocomplete="off" placeholder="${placeholder}" aria-label="Message ${escapeHtml(agent.name)}"><button class="agent-send" type="submit">Send</button></form>
-        </article>`;
-      }).join("");
-      Object.entries(agents).forEach(([agentId, agent]) => appendBubble(agentId, agent.opening));
-      window.trainingInitialized = true;
-      bindTrainingForms();
-    }
-
-    function bindTrainingForms() {
-      document.querySelectorAll(".agent-input-row").forEach((form) => {
-        form.addEventListener("submit", async (event) => {
-          event.preventDefault();
-          const role = form.dataset.role, agentId = form.dataset.agentId;
-          const input = form.elements.message, message = input.value.trim();
-          if (!message) return;
-          appendBubble(agentId, message, "user"); input.value = "";
-          try {
-            const response = await fetch("/training/agent", {
-              method: "POST", headers: {"Content-Type": "application/json"},
-              body: JSON.stringify({role, agent_id: agentId, message})
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || "Training agent unavailable");
-            appendBubble(agentId, data.reply);
-            appendBubble(agentId, data.lesson, "lesson");
-          } catch (error) { appendBubble(agentId, error.message, "lesson"); }
-        });
-      });
-    }
-
-    $("#shipment-search").addEventListener("input", () => refreshDashboard());
-    $("#time-select").addEventListener("change", refreshDashboard);
-    $("#refresh").addEventListener("click", () => { refreshDashboard(); showToast("Tower refreshed"); });
-    $("#feed-refresh").addEventListener("click", refreshDashboard);
-    refreshDashboard();
-    window.setInterval(refreshDashboard, 20000);
-  </script>
-</body>
-</html>
+[Showing lines 1-874 of 902 (50.0KB limit). Use offset=875 to continue.]
