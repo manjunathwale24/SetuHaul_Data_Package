@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "dist/setu-ui/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/dist/setu-ui/index.html" }
+  ]
+}

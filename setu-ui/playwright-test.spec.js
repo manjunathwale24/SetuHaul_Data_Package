@@ -3,7 +3,7 @@
 
 const { test, expect } = require('@playwright/test');
 
-const LAMBDA_URL = 'https://p5ymtoxnwldk5lt4v6wdwn6i6a0fdfof.lambda-url.ap-southeast-2.on.aws/';
+const LAMBDA_URL = 'https://4l7yahwpl23gg5adwvgxyzuvcy0ardts.lambda-url.ap-southeast-2.on.aws/';
 const KUB_URL = 'http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com/';
 
 test('Lambda get_activity endpoint returns OK', async ({ request }) => {
