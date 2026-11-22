@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
   providedIn: 'root'
 })
 export class ApiService {
-  private lambdaUrl = 'https://p5ymtoxnwldk5lt4v6wdwn6i6a0fdfof.lambda-url.ap-southeast-2.on.aws/';
+  private lambdaUrl = 'https://4l7yahwpl23gg5adwvgxyzuvcy0ardts.lambda-url.ap-southeast-2.on.aws/';
   private kubUrl = 'http://ae13542555c274d28bb23bf42f7390b0-1259872480.ap-southeast-2.elb.amazonaws.com';
 
   constructor(private http: HttpClient) { }

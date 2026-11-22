@@ -1,0 +1,8 @@
+node_modules
+.env
+*.log
+.DS_Store
+.git
+.github
+cypress
+test-results
