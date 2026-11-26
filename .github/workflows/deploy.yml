@@ -7,41 +7,160 @@ on:
       - 'devops_agent/**'
       - 'SetuHaul_Data_Package/**'
 
+env:
+  AWS_REGION: ap-southeast-2
+  LAMBDA_FUNCTION_NAME: setuhaul-devops-agent
+  EKS_CLUSTER_NAME: setuhaul-cluster
+  VERCEL_PROJECT_ID: prj_GpntS6U8ySpQk6iEPtPwk70LtXi2
+  VERCEL_ORG_ID: team_0UdxAXStkxNUsSWTctKRgspR
+
 jobs:
-  deploy:
+  # ---------------------------------------------------------------------------
+  # Job 1: Test — run the E2E suite against the live EKS backend + Vercel UI
+  # ---------------------------------------------------------------------------
+  test:
+    name: Run E2E Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # 1. Deploy Lambda function
-      - name: Deploy Lambda Function
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Run E2E test suite
+        run: python e2e_tests.py
+
+  # ---------------------------------------------------------------------------
+  # Job 2: Deploy Lambda function (devops_agent/lambda_function.py)
+  # ---------------------------------------------------------------------------
+  deploy-lambda:
+    name: Deploy Lambda Function
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Package and deploy Lambda
         run: |
-          cd /Users/manjunath/setu/SetuHaul_Data_Package
           zip function.zip devops_agent/lambda_function.py
           aws lambda update-function-code \
-            --function-name setuhaul-devops-lambda \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
             --zip-file fileb://function.zip \
-            --region ap-southeast-2 \
+            --region ${{ env.AWS_REGION }} \
             --publish
 
-      # 2. Deploy Vercel UI (GitHub connected, no token needed)
-      - name: Deploy Vercel UI
-        run: |
-          cd /Users/manjunath/setu/SetuHaul_Data_Package
-          npx vercel --prod
-
-  # Job 2: Verify deployment
-  verify:
-    needs: deploy
+  # ---------------------------------------------------------------------------
+  # Job 3: Deploy Vercel UI (SetuHaul_Data_Package/)
+  # ---------------------------------------------------------------------------
+  deploy-vercel:
+    name: Deploy Vercel UI
+    needs: test
     runs-on: ubuntu-latest
-    name: Verify Deployment
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      # Verify Lambda is updated
-      - name: Verify Lambda
-        run: echo "Lambda deployment complete"
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
 
-      # Verify Vercel deployment
-      - name: Verify Vercel
-        run: echo "Vercel deployment complete"
+      - name: Deploy to Vercel (production)
+        run: |
+          cd SetuHaul_Data_Package
+          vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+
+  # ---------------------------------------------------------------------------
+  # Job 4: Deploy to EKS (Docker image -> ECR -> k8s apply)
+  # ---------------------------------------------------------------------------
+  deploy-eks:
+    name: Deploy to EKS
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          kubectl-version: 'v1.31'
+
+      - name: Deploy to EKS
+        run: ./scripts/deploy-eks.sh
+        working-directory: SetuHaul_Data_Package
+        env:
+          AWS_REGION: ${{ env.AWS_REGION }}
+          EKS_CLUSTER_NAME: ${{ env.EKS_CLUSTER_NAME }}
+
+  # ---------------------------------------------------------------------------
+  # Job 5: Verify — invoke Lambda, check Vercel, confirm EKS rollout
+  # ---------------------------------------------------------------------------
+  verify:
+    name: Verify Deployment
+    needs: [deploy-lambda, deploy-vercel, deploy-eks]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install boto3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          kubectl-version: 'v1.31'
+
+      - name: Verify Lambda invocation
+        run: |
+          aws lambda invoke \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --payload '{"source":"get_status"}' \
+            --region ${{ env.AWS_REGION }} \
+            /tmp/lambda-response.json
+          cat /tmp/lambda-response.json
+
+      - name: Verify Vercel UI endpoints
+        run: |
+          curl -fsS https://setuhaul-ui.vercel.app/dashboard
+          curl -fsS https://setuhaul-ui.vercel.app/deployment
+          curl -fsS https://setuhaul-ui.vercel.app/observability
+          curl -fsS https://setuhaul-ui.vercel.app/simulation
+
+      - name: Verify EKS deployment rollout
+        run: |
+          aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+          kubectl rollout status deployment/setuhaul-service --namespace setuhaul --timeout=5m
+          kubectl get pods -n setuhaul
